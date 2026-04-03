@@ -87,9 +87,21 @@ fi
 # "${VENV_DIR}/bin/python" -m flask db upgrade
 
 # ── 5. Servisleri Yeniden Başlat ─────────────────────────────
-log "Servisler yeniden başlatılıyor..."
-sudo systemctl restart bilgeyolcu-gunicorn 2>&1 || warn "Gunicorn restart edilemedi"
-sudo systemctl restart bilgeyolcu-celery 2>&1 || warn "Celery restart edilemedi"
+# CageFS/CloudLinux'ta sudo çalışmaz — HUP sinyali ile reload
+log "Gunicorn reload ediliyor (HUP sinyali)..."
+GUNICORN_PID=$(pgrep -f "gunicorn.*wsgi:application" -o 2>/dev/null || true)
+if [ -n "$GUNICORN_PID" ]; then
+    kill -HUP "$GUNICORN_PID" 2>&1 && log "Gunicorn reload OK (PID: $GUNICORN_PID)"
+else
+    warn "Gunicorn PID bulunamadı — manuel restart gerekebilir"
+fi
+
+CELERY_PID=$(pgrep -f "celery.*worker" -o 2>/dev/null || true)
+if [ -n "$CELERY_PID" ]; then
+    kill -HUP "$CELERY_PID" 2>&1 && log "Celery reload OK (PID: $CELERY_PID)"
+else
+    warn "Celery PID bulunamadı"
+fi
 
 # ── 6. Sağlık Kontrolü ──────────────────────────────────────
 sleep 3
