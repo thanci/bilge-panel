@@ -1,0 +1,163 @@
+/* src/assets/main.css — Bilge Yolcu global stilleri */
+
+/* Tailwind katmanları */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Temel stil sıfırlama ─────────────────────────────────── */
+@layer base {
+  * {
+    box-sizing: border-box;
+    border-color: theme('colors.gray.700');
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    @apply bg-[#030712] text-gray-100 font-sans;
+    min-height: 100vh;
+  }
+
+  /* Özel scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track  { @apply bg-gray-900; }
+  ::-webkit-scrollbar-thumb  { @apply bg-gray-600 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-gray-500; }
+
+  /* Form elementleri için koyu tema temizliği */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #f1f5f9;
+    -webkit-box-shadow: 0 0 0px 1000px #1f2937 inset;
+  }
+}
+
+/* ── Yeniden kullanılabilir bileşen stilleri ──────────────── */
+@layer components {
+
+  /* Kart bileşeni */
+  .card {
+    @apply bg-gray-800 rounded-xl border border-gray-700/50 shadow-card
+           transition-all duration-200;
+  }
+  .card:hover {
+    @apply shadow-card-hover border-gray-600/50;
+  }
+
+  /* Birincil düğme */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-4 py-2.5
+           bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700
+           text-white text-sm font-medium rounded-lg
+           transition-all duration-150 shadow-glow-sm
+           disabled:opacity-50 disabled:cursor-not-allowed
+           focus:outline-none focus:ring-2 focus:ring-indigo-500/50;
+  }
+
+  /* İkincil (ghost) düğme */
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-4 py-2.5
+           bg-gray-700/50 hover:bg-gray-700 text-gray-300 hover:text-white
+           text-sm font-medium rounded-lg transition-all duration-150
+           focus:outline-none focus:ring-2 focus:ring-gray-500/50;
+  }
+
+  /* Tehlike düğmesi */
+  .btn-danger {
+    @apply inline-flex items-center gap-2 px-3 py-1.5
+           bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300
+           text-xs font-medium rounded-lg transition-all duration-150;
+  }
+
+  /* Form input */
+  .input-field {
+    @apply w-full px-3.5 py-2.5
+           bg-gray-900 border border-gray-700 rounded-lg
+           text-gray-100 placeholder-gray-500 text-sm
+           focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50
+           transition duration-150;
+  }
+
+  /* Select dropdown */
+  .select-field {
+    @apply input-field appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%636363' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    padding-right: 2.5rem;
+  }
+
+  /* Label */
+  .field-label {
+    @apply block text-xs font-medium text-gray-400 mb-1.5 tracking-wide uppercase;
+  }
+
+  /* Textarea */
+  .textarea-field {
+    @apply input-field resize-none;
+  }
+
+  /* Divider */
+  .divider {
+    @apply border-t border-gray-700/50 my-4;
+  }
+
+  /* Sidebar link */
+  .nav-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg
+           text-gray-400 hover:text-gray-100 hover:bg-gray-800
+           text-sm font-medium transition-all duration-150 cursor-pointer;
+  }
+  .nav-link.active {
+    @apply bg-indigo-500/10 text-indigo-400 border border-indigo-500/20;
+  }
+
+  /* Metin gradyanı */
+  .text-gradient {
+    @apply bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent;
+  }
+
+  /* Canlı nokta göstergesi */
+  .live-dot {
+    @apply inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse-slow;
+  }
+}
+
+/* ── Yardımcı sınıflar ────────────────────────────────────── */
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+
+  /* SVG stroke geçişi */
+  .stroke-transition {
+    transition: stroke 0.8s ease, stroke-dashoffset 1.2s ease;
+  }
+
+  /* Buzlu cam efekti */
+  .glass {
+    backdrop-filter: blur(12px) saturate(180%);
+    background-color: rgba(17, 24, 39, 0.85);
+  }
+
+  /* Subtle shine animasyonu (kart hover) */
+  .shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .shine::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.03) 50%, transparent 60%);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+  }
+  .shine:hover::after { transform: translateX(100%); }
+}

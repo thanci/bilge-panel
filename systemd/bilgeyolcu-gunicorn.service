@@ -1,0 +1,50 @@
+[Unit]
+Description=Bilge Yolcu Panel — Gunicorn WSGI Server
+Documentation=https://bilgeyolcu.com/yonetim/
+After=network.target redis.service
+Wants=redis.service
+
+[Service]
+Type=notify
+User=bilgeyolcu
+Group=bilgeyolcu
+RuntimeDirectory=bilgeyolcu
+
+# Çalışma dizini
+WorkingDirectory=/home/bilgeyolcu/bilge-panel/backend
+
+# .env dosyasını yükle
+EnvironmentFile=/home/bilgeyolcu/bilge-panel/backend/.env
+
+# Gunicorn komutu
+ExecStart=/home/bilgeyolcu/bilge-panel/venv/bin/gunicorn \
+    -c gunicorn.conf.py \
+    wsgi:application
+
+# Graceful restart: SIGHUP ile worker'ları yeniden başlat
+ExecReload=/bin/kill -s HUP $MAINPID
+
+# Kapatma süresi (LLM çağrıları uzun sürebilir)
+TimeoutStopSec=30
+KillMode=mixed
+
+# Otomatik yeniden başlatma
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Güvenlik sertleştirmeleri
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/home/bilgeyolcu/bilge-panel
+ReadWritePaths=/home/bilgeyolcu/backups
+
+# Log çıktısı
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bilgeyolcu-gunicorn
+
+[Install]
+WantedBy=multi-user.target

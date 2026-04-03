@@ -1,0 +1,56 @@
+[Unit]
+Description=Bilge Yolcu Panel — Celery Worker
+Documentation=https://bilgeyolcu.com/yonetim/
+After=network.target redis.service bilgeyolcu-gunicorn.service
+Requires=redis.service
+
+[Service]
+Type=forking
+User=bilgeyolcu
+Group=bilgeyolcu
+
+# Çalışma dizini
+WorkingDirectory=/home/bilgeyolcu/bilge-panel/backend
+
+# .env dosyasını yükle
+EnvironmentFile=/home/bilgeyolcu/bilge-panel/backend/.env
+
+# Celery worker başlat
+# --concurrency=2: aynı anda 2 görev (LLM çağrıları CPU-bound değil, I/O-bound)
+# --max-tasks-per-child=50: memory leak koruması
+ExecStart=/home/bilgeyolcu/bilge-panel/venv/bin/celery \
+    -A celery_worker.celery \
+    worker \
+    --loglevel=info \
+    --concurrency=2 \
+    --max-tasks-per-child=50 \
+    --logfile=/home/bilgeyolcu/bilge-panel/logs/celery-worker.log \
+    --pidfile=/home/bilgeyolcu/bilge-panel/logs/celery-worker.pid \
+    --detach
+
+# PID dosyasından takip
+PIDFile=/home/bilgeyolcu/bilge-panel/logs/celery-worker.pid
+
+# Celery'yi düzgün kapat (SIGTERM → warm shutdown)
+ExecStop=/bin/kill -s TERM $MAINPID
+
+# Kapatma süresi (çalışan görevlerin bitmesini bekle)
+TimeoutStopSec=300
+KillMode=mixed
+
+# Otomatik yeniden başlatma
+Restart=on-failure
+RestartSec=10
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+# Güvenlik
+NoNewPrivileges=true
+
+# Log
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bilgeyolcu-celery
+
+[Install]
+WantedBy=multi-user.target

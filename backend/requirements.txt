@@ -1,0 +1,56 @@
+# ============================================================
+# Bilge Yolcu Kontrol Paneli — Python Bağımlılıkları
+# Kurulum: pip install -r requirements.txt
+# ============================================================
+
+# --- Web Framework ---
+Flask==3.1.0
+Flask-CORS==5.0.0
+
+# --- Veritabanı ORM ---
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.36
+
+# --- JWT Kimlik Doğrulama ---
+Flask-JWT-Extended==4.7.1
+
+# --- Şifre Hashleme ---
+bcrypt==4.2.1
+
+# --- Rate Limiting ---
+Flask-Limiter==3.9.0
+limits==3.14.0
+
+# --- Ortam Değişkenleri ---
+python-dotenv==1.0.1
+
+# --- Asenkron Görev Kuyruğu ---
+celery==5.4.0
+redis==5.2.1
+
+# --- LLM API İstemcileri ---
+google-generativeai==0.8.3
+anthropic==0.40.0
+openai==1.57.4
+
+# --- Token Sayıcı ---
+tiktoken==0.8.0
+
+# --- YouTube Transkript ---
+youtube-transcript-api==0.6.3
+
+# --- Görüntü İşleme ---
+Pillow==11.1.0
+
+# --- HTTP İstemcisi ---
+requests==2.32.3
+
+# --- WSGI Sunucusu (Üretim) ---
+gunicorn==23.0.0
+
+# --- SSH Bağlantısı (Aşama 6) ---
+paramiko==3.5.0
+cryptography==44.0.2       # Paramiko RSA/Ed25519 key desteği için zorunlu
+
+# --- Yardımcı ---
+python-dateutil==2.9.0.post0
