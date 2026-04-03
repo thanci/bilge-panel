@@ -88,8 +88,8 @@ fi
 
 # ── 5. Servisleri Yeniden Başlat ─────────────────────────────
 log "Servisler yeniden başlatılıyor..."
-systemctl restart bilgeyolcu-gunicorn 2>&1 || warn "Gunicorn restart edilemedi"
-systemctl restart bilgeyolcu-celery 2>&1 || warn "Celery restart edilemedi"
+sudo systemctl restart bilgeyolcu-gunicorn 2>&1 || warn "Gunicorn restart edilemedi"
+sudo systemctl restart bilgeyolcu-celery 2>&1 || warn "Celery restart edilemedi"
 
 # ── 6. Sağlık Kontrolü ──────────────────────────────────────
 sleep 3
