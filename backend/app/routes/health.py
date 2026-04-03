@@ -1,14 +1,5 @@
 """
 app/routes/health.py — Sistem sağlık kontrolü endpointleri.
-
-Endpoint'ler:
-  GET /api/health          — Genel sistem durumu (herkese açık)
-  GET /api/health/auth     — Kimlik doğrulama gerektiren sağlık kontrolü
-
-Bu endpoint'ler;
-  - Apache Health Monitor tarafından periyodik olarak sorgulanabilir.
-  - Vue.js Dashboard'un backend bağlantısını doğrulamak için kullanılır.
-  - Celery ve Redis bağlantı durumunu da rapor eder (Aşama 3'te genişler).
 """
 
 from datetime import datetime, timezone
@@ -22,39 +13,31 @@ from app.extensions import db
 
 @main_bp.route("/health", methods=["GET"])
 def health_check():
-    """
-    Herkese açık temel sağlık kontrolü.
-    Load balancer veya uptime monitor bu endpoint'i kullanır.
-    
-    Yanıt (200 OK):
-        {
-            "success": true,
-            "data": {
-                "status": "healthy",
-                "timestamp": "2025-04-03T10:00:00+00:00",
-                "services": {
-                    "database": "ok",
-                    "redis": "not_configured"
-                }
-            }
-        }
-    """
     services = {}
 
-    # --- Veritabanı Bağlantı Kontrolü ---
+    # --- Veritabanı ---
     try:
         db.session.execute(db.text("SELECT 1"))
         services["database"] = "ok"
     except Exception as e:
-        current_app.logger.error(f"[HEALTH] DB bağlantı hatası: {e}")
+        current_app.logger.error(f"[HEALTH] DB hatası: {e}")
         services["database"] = f"error: {str(e)}"
 
-    # --- Redis / Celery (Aşama 3'te aktif olacak) ---
-    # Şimdilik placeholder olarak bırakıyoruz
-    services["redis"]  = "not_configured_yet"
-    services["celery"] = "not_configured_yet"
+    # --- Redis ---
+    try:
+        import redis
+        r = redis.from_url(current_app.config.get("CELERY_BROKER_URL", ""))
+        r.ping()
+        services["redis"] = "ok"
+    except Exception:
+        services["redis"] = "unavailable"
 
-    # Herhangi bir kritik servis down mu?
+    # --- Celery ---
+    if current_app.config.get("CELERY_TASK_ALWAYS_EAGER"):
+        services["celery"] = "eager_mode"
+    else:
+        services["celery"] = "ok"
+
     overall_status = "healthy" if services["database"] == "ok" else "degraded"
     http_code = 200 if overall_status == "healthy" else 503
 
@@ -73,11 +56,6 @@ def health_check():
 @main_bp.route("/health/auth", methods=["GET"])
 @require_auth
 def health_check_auth():
-    """
-    Kimlik doğrulama gerektiren sağlık kontrolü.
-    Vue.js, sayfa yüklendiğinde hem bağlantıyı hem token geçerliliğini
-    tek istekte doğrulamak için bu endpoint'i kullanabilir.
-    """
     from flask import g
     return jsonify({
         "success": True,
