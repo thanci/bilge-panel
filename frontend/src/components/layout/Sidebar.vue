@@ -12,6 +12,7 @@ const authStore = useAuthStore()
 const NAV = [
   { name: 'dashboard', icon: '◈',  label: 'Dashboard' },
   { name: 'tasks',     icon: '⚡', label: 'Görev Kuyruğu' },
+  { name: 'publish',   icon: '📝', label: 'Yayın Kuyruğu' },
   { name: 'budget',    icon: '◎',  label: 'Bütçe' },
   { name: 'xenforo',  icon: '🏛',  label: 'XenForo' },
   { name: 'devops',   icon: '🖥',  label: 'Sistem & Tema' },

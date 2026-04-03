@@ -46,7 +46,7 @@ def health_check():
         "data": {
             "status":    overall_status,
             "app":       "Bilge Yolcu Kontrol Paneli",
-            "version":   "1.0.4",
+            "version":   "1.0.5",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "services":  services,
         },

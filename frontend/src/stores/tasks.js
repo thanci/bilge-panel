@@ -9,13 +9,14 @@ import { taskService }   from '@/services'
 
 export const useTaskStore = defineStore('tasks', () => {
   // ── Durum ─────────────────────────────────────────────
-  const tasks     = ref([])
-  const isLoading = ref(false)
-  const isQueuing = ref(false)   // Form submit sırasında
-  const error     = ref(null)
-  const success   = ref(null)    // Başarı mesajı (ototemizlenir)
-  const filter    = ref('all')   // 'all' | 'youtube_summary' | 'ai_article'
-  let   _pollTimer = null
+  const tasks        = ref([])
+  const selectedTask = ref(null)   // Modal detay için
+  const isLoading    = ref(false)
+  const isQueuing    = ref(false)   // Form submit sırasında
+  const error        = ref(null)
+  const success      = ref(null)    // Başarı mesajı (ototemizlenir)
+  const filter       = ref('all')   // 'all' | 'youtube_summary' | 'ai_article'
+  let   _pollTimer   = null
 
   // ── Hesaplananlar ─────────────────────────────────────
   const filteredTasks = computed(() => {
@@ -36,6 +37,16 @@ export const useTaskStore = defineStore('tasks', () => {
       error.value = null
     } catch (err) {
       error.value = err.response?.data?.message || 'Görev listesi alınamadı.'
+    }
+  }
+
+  async function getTaskDetail(taskId) {
+    try {
+      selectedTask.value = await taskService.getTask(taskId)
+      return selectedTask.value
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Görev detayı alınamadı.'
+      return null
     }
   }
 
@@ -75,6 +86,34 @@ export const useTaskStore = defineStore('tasks', () => {
     }
   }
 
+  async function deleteTask(taskId) {
+    try {
+      await taskService.deleteTask(taskId)
+      tasks.value = tasks.value.filter(t => t.task_id !== taskId)
+      if (selectedTask.value?.task_id === taskId) selectedTask.value = null
+      success.value = 'Görev silindi.'
+      _autoHideSuccess()
+      return true
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Görev silinemedi.'
+      return false
+    }
+  }
+
+  async function retryTask(taskId) {
+    try {
+      const result = await taskService.retryTask(taskId)
+      success.value = `Görev tekrar kuyruğa alındı (ID: ${result.new_task_id.slice(0,8)}...)`
+      selectedTask.value = null
+      await fetchTasks()
+      _autoHideSuccess()
+      return result
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Tekrar deneme başarısız.'
+      return null
+    }
+  }
+
   async function revokeTask(taskId) {
     try {
       await taskService.revokeTask(taskId)
@@ -104,9 +143,13 @@ export const useTaskStore = defineStore('tasks', () => {
   }
 
   return {
-    tasks, filteredTasks, isLoading, isQueuing, error, success,
+    tasks, filteredTasks, selectedTask,
+    isLoading, isQueuing, error, success,
     filter, runningCount, queuedCount,
-    fetchTasks, queueYoutube, queueArticle, revokeTask,
+    fetchTasks, getTaskDetail,
+    queueYoutube, queueArticle,
+    deleteTask, retryTask, revokeTask,
     startPolling, stopPolling, setFilter,
   }
 })
+

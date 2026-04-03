@@ -234,30 +234,121 @@ def get_task(task_id: str):
 
 @tasks_bp.route("/<task_id>", methods=["DELETE"])
 @require_auth
-def revoke_task(task_id: str):
+def delete_or_revoke_task(task_id: str):
     """
-    QUEUED veya RUNNING durumundaki bir görevi iptal eder.
-    Celery'nin revoke() ile görevi durdurur.
+    Görevi iptal eder veya siler.
+      - QUEUED/RUNNING → Celery revoke + DB'de REVOKED olarak işaretle
+      - SUCCESS/FAILED/REVOKED → DB'den tamamen sil
     """
     try:
-        from celery.result import AsyncResult
-        result = AsyncResult(task_id)
+        from app.models import TaskLog
+        from app.extensions import db
 
-        # Celery düzeyinde iptal et (SIGTERM ile)
-        result.revoke(terminate=True, signal="SIGTERM")
+        task = TaskLog.query.get(task_id)
+        if not task:
+            return jsonify({
+                "success": False, "error": "not_found",
+                "message": f"Görev bulunamadı: {task_id[:16]}",
+            }), 404
 
-        from app.tasks.helpers import update_task_status
-        update_task_status(task_id, "REVOKED", error_msg="Admin tarafından iptal edildi.")
-
-        logger.info(f"[TASKS API] Görev iptal edildi: {task_id[:8]}")
-        return jsonify({
-            "success": True,
-            "data": {"task_id": task_id, "status": "REVOKED"},
-        }), 200
+        if task.status in ("QUEUED", "RUNNING"):
+            # Celery'den iptal et
+            from celery.result import AsyncResult
+            AsyncResult(task_id).revoke(terminate=True, signal="SIGTERM")
+            task.status = "REVOKED"
+            task.error_msg = "Admin tarafından iptal edildi."
+            db.session.commit()
+            logger.info(f"[TASKS API] Görev iptal edildi: {task_id[:8]}")
+            return jsonify({
+                "success": True,
+                "data": {"task_id": task_id, "status": "REVOKED", "action": "revoked"},
+            }), 200
+        else:
+            # Tamamlanmış görevleri DB'den sil
+            db.session.delete(task)
+            db.session.commit()
+            logger.info(f"[TASKS API] Görev silindi: {task_id[:8]}")
+            return jsonify({
+                "success": True,
+                "data": {"task_id": task_id, "action": "deleted"},
+            }), 200
 
     except Exception as e:
-        logger.error(f"[TASKS API] Görev iptal hatası: {e}", exc_info=True)
+        logger.error(f"[TASKS API] Görev silme/iptal hatası: {e}", exc_info=True)
         return jsonify({
-            "success": False, "error": "revoke_error",
-            "message": f"Görev iptal edilemedi: {str(e)}",
+            "success": False, "error": "delete_error",
+            "message": f"İşlem başarısız: {str(e)}",
         }), 500
+
+
+# ──────────────────────────────────────────────────────────────
+# POST /api/tasks/<task_id>/retry
+# ──────────────────────────────────────────────────────────────
+
+@tasks_bp.route("/<task_id>/retry", methods=["POST"])
+@require_auth
+def retry_task(task_id: str):
+    """
+    Başarısız bir görevi aynı parametrelerle tekrar kuyruğa alır.
+    Orijinal görevi REVOKED yapıp yeni bir görev oluşturur.
+    """
+    try:
+        import json as _json
+        from app.models import TaskLog
+
+        task = TaskLog.query.get(task_id)
+        if not task:
+            return jsonify({
+                "success": False, "error": "not_found",
+                "message": "Görev bulunamadı.",
+            }), 404
+
+        if task.status not in ("FAILED", "REVOKED"):
+            return jsonify({
+                "success": False, "error": "invalid_status",
+                "message": f"Sadece FAILED/REVOKED görevler tekrar denenebilir. Mevcut: {task.status}",
+            }), 400
+
+        # Orijinal payload'u çıkar
+        try:
+            original_payload = _json.loads(task.payload) if task.payload else {}
+        except (ValueError, TypeError):
+            original_payload = {}
+
+        # Görev türüne göre yeniden kuyruğa al
+        if task.task_type == "youtube_summary":
+            from app.tasks.youtube import youtube_to_article_task
+            async_result = youtube_to_article_task.delay(original_payload)
+        elif task.task_type == "ai_article":
+            from app.tasks.ai_writer import ai_article_task
+            async_result = ai_article_task.delay(original_payload)
+        else:
+            return jsonify({
+                "success": False, "error": "unknown_type",
+                "message": f"Bilinmeyen görev türü: {task.task_type}",
+            }), 400
+
+        new_task_id = async_result.id
+        create_task_log(new_task_id, task.task_type, payload=original_payload)
+
+        logger.info(
+            f"[TASKS API] Görev tekrar kuyruğa alındı: "
+            f"eski={task_id[:8]} yeni={new_task_id[:8]}"
+        )
+        return jsonify({
+            "success": True,
+            "data": {
+                "old_task_id": task_id,
+                "new_task_id": new_task_id,
+                "status": "QUEUED",
+                "message": "Görev tekrar kuyruğa alındı.",
+            },
+        }), 202
+
+    except Exception as e:
+        logger.error(f"[TASKS API] Tekrar deneme hatası: {e}", exc_info=True)
+        return jsonify({
+            "success": False, "error": "retry_error",
+            "message": f"Tekrar deneme başarısız: {str(e)}",
+        }), 500
+

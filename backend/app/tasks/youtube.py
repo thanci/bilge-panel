@@ -374,7 +374,7 @@ def youtube_to_article_task(self, payload: dict) -> dict:
             status     = "SUCCESS",
             result     = {
                 "video_id":   video_id,
-                "content":    final_content[:500] + "..." if len(final_content) > 500 else final_content,
+                "content":    final_content,
                 "full_length": len(final_content),
                 "meta":       meta,
                 "xf":         xf_result,

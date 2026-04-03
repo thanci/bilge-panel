@@ -2,11 +2,25 @@
 /**
  * TaskQueue.vue — Celery görev listesi (5 saniyelik polling).
  * Görev türü, durumu, maliyet ve süreleri tablolar biçimde gösterir.
+ * Satıra tıklayınca TaskDetailModal açılır.
  */
 
-import { onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useTaskStore } from '@/stores/tasks'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import TaskDetailModal from '@/components/tasks/TaskDetailModal.vue'
+
+const showModal   = ref(false)
+const selectedId  = ref('')
+
+function openDetail(taskId) {
+  selectedId.value = taskId
+  showModal.value  = true
+}
+function closeDetail() {
+  showModal.value  = false
+  selectedId.value = ''
+}
 
 const taskStore = useTaskStore()
 
@@ -149,8 +163,9 @@ async function revoke(taskId) {
             <tr
               v-for="task in taskStore.filteredTasks"
               :key="task.task_id"
+              @click="openDetail(task.task_id)"
               :class="[
-                'transition-colors duration-150',
+                'transition-colors duration-150 cursor-pointer',
                 task.status === 'RUNNING'
                   ? 'bg-indigo-500/5 hover:bg-indigo-500/10'
                   : 'hover:bg-gray-700/20',
@@ -223,5 +238,13 @@ async function revoke(taskId) {
         </table>
       </div>
     </div>
+
+    <!-- Detay Modal -->
+    <TaskDetailModal
+      :visible="showModal"
+      :task-id="selectedId"
+      @close="closeDetail"
+      @refresh="taskStore.fetchTasks()"
+    />
   </div>
 </template>

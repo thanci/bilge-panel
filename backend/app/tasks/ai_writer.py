@@ -203,7 +203,7 @@ def ai_article_task(self, payload: dict) -> dict:
                 "tone":       tone,
                 "length":     length,
                 "word_count": len(final_content.split()),
-                "content":    final_content[:500] + "..." if len(final_content) > 500 else final_content,
+                "content":    final_content,
                 "meta":       meta,
                 "xf":         xf_result,
             },

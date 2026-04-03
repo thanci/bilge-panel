@@ -100,10 +100,10 @@ def update_task_status(
 
 
 def get_task_log(task_id: str) -> Optional[dict]:
-    """Bir task'ın detaylarını döndürür."""
+    """Bir task'ın detaylarını döndürür (payload + result dahil)."""
     try:
         log = TaskLog.query.filter_by(task_id=task_id).first()
-        return log.to_dict() if log else None
+        return log.to_dict(include_content=True) if log else None
     except Exception as e:
         logger.error(f"[TASKS] TaskLog okuma hatası: {e}")
         return None

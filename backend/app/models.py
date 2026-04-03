@@ -243,8 +243,10 @@ class TaskLog(db.Model):
             return (self.finished_at - self.started_at).total_seconds()
         return None
 
-    def to_dict(self) -> dict:
-        return {
+    def to_dict(self, include_content: bool = False) -> dict:
+        import json as _json
+
+        base = {
             "task_id":          self.task_id,
             "task_type":        self.task_type,
             "status":           self.status,
@@ -257,5 +259,90 @@ class TaskLog(db.Model):
             "finished_at":      self.finished_at.isoformat() if self.finished_at else None,
         }
 
+        # Detay istenmişse payload ve result'ı da ekle
+        if include_content:
+            try:
+                base["payload"] = _json.loads(self.payload) if self.payload else None
+            except (ValueError, TypeError):
+                base["payload"] = self.payload
+            try:
+                base["result"] = _json.loads(self.result) if self.result else None
+            except (ValueError, TypeError):
+                base["result"] = self.result
+        else:
+            # Liste görünümünde özet bilgi
+            base["has_result"] = bool(self.result)
+            base["has_error"]  = bool(self.error_msg)
+
+        return base
+
     def __repr__(self) -> str:
         return f"<TaskLog {self.task_id[:8]}... [{self.status}] {self.task_type}>"
+
+
+# ============================================================
+# YAYIN TASLAK KUYRUĞU
+# ============================================================
+
+class PublishDraft(db.Model):
+    """
+    Editoryal yayın kuyruğu. Tamamlanmış görevlerden oluşturulan
+    içerikler burada düzenlenip XenForo'ya yayınlanır.
+
+    Durum Akışı:
+      DRAFT → (düzenleme) → PUBLISHED
+      DRAFT → (silme)     → kayıt silinir
+    """
+    __tablename__ = "publish_draft"
+
+    id            = db.Column(db.Integer, primary_key=True)
+    # Kaynak görev (opsiyonel — bağımsız taslak da oluşturulabilir)
+    task_id       = db.Column(db.String(64), db.ForeignKey("task_log.task_id", ondelete="SET NULL"), nullable=True, index=True)
+    # Makale başlığı
+    title         = db.Column(db.String(255), nullable=False)
+    # BB-Code formatında içerik
+    content       = db.Column(db.Text, nullable=False)
+    # Kaynak görev türü: youtube_summary, ai_article
+    source_type   = db.Column(db.String(64), nullable=True)
+    # Kategori / anahtar kelimeler
+    category      = db.Column(db.String(128), nullable=True)
+    tags          = db.Column(db.Text, nullable=True)    # JSON array string
+    # XenForo hedef forum node ID'si
+    xf_node_id    = db.Column(db.Integer, nullable=True)
+    # Durum: DRAFT, PUBLISHED
+    status        = db.Column(db.String(16), nullable=False, default="DRAFT", index=True)
+    # Yayınlanmış ise XenForo bilgileri
+    xf_thread_id  = db.Column(db.Integer, nullable=True)
+    xf_thread_url = db.Column(db.String(512), nullable=True)
+    # Zaman damgaları
+    created_at    = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at    = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
+                              onupdate=lambda: datetime.now(timezone.utc))
+    published_at  = db.Column(db.DateTime, nullable=True)
+
+    def to_dict(self) -> dict:
+        import json as _json
+        try:
+            tags_list = _json.loads(self.tags) if self.tags else []
+        except (ValueError, TypeError):
+            tags_list = []
+
+        return {
+            "id":             self.id,
+            "task_id":        self.task_id,
+            "title":          self.title,
+            "content":        self.content,
+            "source_type":    self.source_type,
+            "category":       self.category,
+            "tags":           tags_list,
+            "xf_node_id":     self.xf_node_id,
+            "status":         self.status,
+            "xf_thread_id":   self.xf_thread_id,
+            "xf_thread_url":  self.xf_thread_url,
+            "created_at":     self.created_at.isoformat() if self.created_at else None,
+            "updated_at":     self.updated_at.isoformat() if self.updated_at else None,
+            "published_at":   self.published_at.isoformat() if self.published_at else None,
+        }
+
+    def __repr__(self) -> str:
+        return f"<PublishDraft #{self.id} [{self.status}] '{self.title[:30]}'>"

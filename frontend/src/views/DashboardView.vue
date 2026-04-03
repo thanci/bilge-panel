@@ -4,11 +4,23 @@
  * BudgetGauge, istatistik kartları ve son 5 görev özetiyle açılır.
  */
 
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useBudgetStore } from '@/stores/budget'
 import { useTaskStore }   from '@/stores/tasks'
 import BudgetGauge        from '@/components/budget/BudgetGauge.vue'
 import StatusBadge        from '@/components/ui/StatusBadge.vue'
+import TaskDetailModal    from '@/components/tasks/TaskDetailModal.vue'
+
+const showModal   = ref(false)
+const selectedId  = ref('')
+function openDetail(taskId) {
+  selectedId.value = taskId
+  showModal.value  = true
+}
+function closeDetail() {
+  showModal.value  = false
+  selectedId.value = ''
+}
 
 const budgetStore = useBudgetStore()
 const taskStore   = useTaskStore()
@@ -172,8 +184,9 @@ function taskTypeEmoji(type) {
         <!-- Liste -->
         <div v-else class="space-y-2">
           <div v-for="task in taskStore.tasks.slice(0, 6)" :key="task.task_id"
+               @click="openDetail(task.task_id)"
                class="flex items-center gap-3 px-4 py-3 bg-gray-900/50 rounded-lg
-                      hover:bg-gray-700/30 transition-colors">
+                      hover:bg-gray-700/30 transition-colors cursor-pointer">
             <span class="text-lg">{{ taskTypeEmoji(task.task_type) }}</span>
             <div class="flex-1 min-w-0">
               <div class="text-xs font-medium text-gray-200 truncate">
@@ -189,5 +202,13 @@ function taskTypeEmoji(type) {
         </div>
       </div>
     </div>
+
+    <!-- Detay Modal -->
+    <TaskDetailModal
+      :visible="showModal"
+      :task-id="selectedId"
+      @close="closeDetail"
+      @refresh="taskStore.fetchTasks()"
+    />
   </div>
 </template>

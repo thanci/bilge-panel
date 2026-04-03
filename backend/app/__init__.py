@@ -207,6 +207,10 @@ def _register_blueprints(app: Flask) -> None:
     from app.routes.deploy import deploy_bp
     app.register_blueprint(deploy_bp)
 
+    # Yayın Kuyruğu: /api/publish/*
+    from app.routes.publish import publish_bp
+    app.register_blueprint(publish_bp, url_prefix="/api/publish")
+
     # ── SPA Statik Dosya Servisi (Üretim / Passenger) ────────────────
     # Geliştirmede Vite dev server kullanılır, burası atlanır.
     # Üretimde Passenger TÜM istekleri Flask'a yönlendirir, bu yüzden

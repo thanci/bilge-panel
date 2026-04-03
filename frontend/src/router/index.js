@@ -26,6 +26,12 @@ const routes = [
         meta: { title: 'Görev Kuyruğu' },
       },
       {
+        path: 'publish',
+        name: 'publish',
+        component: () => import('@/views/PublishView.vue'),
+        meta: { title: 'Yayın Kuyruğu' },
+      },
+      {
         path: 'budget',
         name: 'budget',
         component: () => import('@/views/BudgetView.vue'),

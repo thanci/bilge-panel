@@ -66,8 +66,46 @@ export const taskService = {
     const { data } = await api.get(`/tasks/${taskId}`)
     return data.data
   },
+  async deleteTask(taskId) {
+    const { data } = await api.delete(`/tasks/${taskId}`)
+    return data.data
+  },
+  async retryTask(taskId) {
+    const { data } = await api.post(`/tasks/${taskId}/retry`)
+    return data.data
+  },
   async revokeTask(taskId) {
     const { data } = await api.delete(`/tasks/${taskId}`)
     return data.data
   },
 }
+
+// ─── Yayın Kuyruğu ───────────────────────────────────────
+export const publishService = {
+  async createDraft(payload) {
+    const { data } = await api.post('/publish', payload)
+    return data.data
+  },
+  async listDrafts(status = null) {
+    const params = status ? `?status=${status}` : ''
+    const { data } = await api.get(`/publish${params}`)
+    return data.data
+  },
+  async getDraft(id) {
+    const { data } = await api.get(`/publish/${id}`)
+    return data.data
+  },
+  async updateDraft(id, payload) {
+    const { data } = await api.put(`/publish/${id}`, payload)
+    return data.data
+  },
+  async publishDraft(id) {
+    const { data } = await api.post(`/publish/${id}/send`)
+    return data.data
+  },
+  async deleteDraft(id) {
+    const { data } = await api.delete(`/publish/${id}`)
+    return data.data
+  },
+}
+
