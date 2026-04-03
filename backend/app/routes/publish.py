@@ -80,10 +80,8 @@ def create_draft():
             )
         else:
             # Bağımsız taslak
-            title = body.get("title", "").strip()
+            title = body.get("title", "Başlıksız").strip() or "Başlıksız"
             content = body.get("content", "").strip()
-            if not title or not content:
-                return jsonify({"success": False, "error": "missing_fields", "message": "title ve content zorunlu."}), 400
 
             tags = body.get("tags", [])
             if isinstance(tags, str):
@@ -96,6 +94,7 @@ def create_draft():
                 category    = body.get("category", ""),
                 tags        = json.dumps(tags, ensure_ascii=False),
                 xf_node_id  = body.get("xf_node_id"),
+                tone        = body.get("tone", "felsefi"),
                 status      = "DRAFT",
             )
 
@@ -186,6 +185,8 @@ def update_draft(draft_id: int):
                 draft.tags = json.dumps(tags, ensure_ascii=False)
             elif isinstance(tags, str):
                 draft.tags = json.dumps([t.strip() for t in tags.split(",") if t.strip()], ensure_ascii=False)
+        if "tone" in body:
+            draft.tone = body["tone"]
 
         db.session.commit()
         logger.info(f"[PUBLISH] Taslak güncellendi: #{draft_id}")
@@ -273,3 +274,121 @@ def delete_draft(draft_id: int):
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ────────────────────────────────────────────────────────────────
+# POST /api/publish/ai-enhance — AI ile metni genişlet/düzelt
+# ────────────────────────────────────────────────────────────────
+
+_AI_ENHANCE_PROMPTS = {
+    "expand": """Aşağıdaki paragrafı daha detaylı, derinlikli ve zengin bir şekilde genişlet.
+Her cümleyi açıkla, örnekler ekle, bağlamı genişlet. Türkçe, doğal ve akıcı yaz.
+Sadece genişletilmiş metni döndür, başka açıklama ekleme.
+
+METİN:
+{text}""",
+
+    "rewrite": """Aşağıdaki metni aynı anlamı koruyarak farklı cümlelerle yeniden yaz.
+Daha akıcı, daha güçlü ifadeler kullan. Türkçe, doğal yaz.
+Sadece yeniden yazılmış metni döndür.
+
+METİN:
+{text}""",
+
+    "longer": """Aşağıdaki makaleyi önemli ölçüde genişlet. Her bölüme ek paragraflar,
+örnekler, detaylar ve derinlik ekle. Mevcut yapıyı koru ama kelime sayısını
+en az 2 katına çıkar. Türkçe, BB-Code formatında yaz.
+Sadece genişletilmiş makaleyi döndür.
+
+MAKALE:
+{text}""",
+
+    "summarize": """Aşağıdaki metni özetle. Ana fikirleri koru, gereksiz detayları çıkar.
+Kısa, net ve etkileyici bir şekilde yeniden yaz. Türkçe.
+Sadece özetlenmiş metni döndür.
+
+METİN:
+{text}""",
+
+    "continue": """Aşağıdaki metnin devamını yaz. Aynı ton, üslup ve konuyu koru.
+En az 3 yeni paragraf ekle. Doğal bir geçişle devam et.
+BB-Code formatında, Türkçe yaz. Sadece devam metnini döndür.
+
+METİN:
+{text}""",
+
+    "translate": """Aşağıdaki İngilizce metni Türkçeye çevir. Doğal, akıcı Türkçe kullan.
+Tercüme havasından kaçın. Sadece çevrilmiş metni döndür.
+
+METİN:
+{text}""",
+}
+
+@publish_bp.route("/ai-enhance", methods=["POST"])
+@require_auth
+def ai_enhance():
+    """Editordeki metni AI ile genişlet/düzelt/devam ettir."""
+    try:
+        body = request.get_json(silent=True) or {}
+        action = body.get("action", "")
+        selected_text = body.get("selected_text", "")
+        full_text = body.get("full_text", "")
+        tone = body.get("tone", "felsefi")
+
+        if action not in _AI_ENHANCE_PROMPTS:
+            return jsonify({"success": False, "error": "invalid_action",
+                            "message": f"Geçersiz aksiyon: {action}"}), 400
+
+        # Seçili metin varsa onu kullan, yoksa tam metni
+        text = selected_text if selected_text else full_text
+        if not text.strip():
+            return jsonify({"success": False, "error": "no_text",
+                            "message": "Metin bulunamadı."}), 400
+
+        prompt_template = _AI_ENHANCE_PROMPTS[action]
+        prompt = prompt_template.format(text=text)
+
+        # Ton eklentisi
+        tone_hint = f"\n\nYAZIM TONU: {tone} — bu ton ile uyumlu yaz."
+        prompt += tone_hint
+
+        from flask import current_app
+        from app.llm.client import complete_with_fallback
+        from app.llm.prompts import _BASE_IDENTITY
+
+        system_prompt = f"""{_BASE_IDENTITY}
+
+Sen metin düzenleme ve genişletme uzmanısın.
+Verilen talimatı uygula, sadece sonuç metnini döndür.
+Başka açıklama, not veya yorum ekleme."""
+
+        llm_response = complete_with_fallback(
+            prompt      = prompt,
+            system      = system_prompt,
+            max_tokens  = 4000,
+            temperature = 0.7,
+            task_id     = f"ai_enhance_{action}",
+        )
+
+        result_text = llm_response.text.strip()
+
+        # "continue" için mevcut metne ekle
+        if action == "continue":
+            result_text = full_text.rstrip() + "\n\n" + result_text
+        elif action == "longer":
+            result_text = result_text  # Tam değiştirme
+
+        logger.info(f"[PUBLISH] AI-enhance: {action}, {len(result_text)} karakter")
+
+        return jsonify({
+            "success": True,
+            "data": {
+                "content": result_text,
+                "action": action,
+                "model": llm_response.model,
+            },
+        }), 200
+
+    except Exception as e:
+        logger.error(f"[PUBLISH] AI-enhance hatası: {e}", exc_info=True)
+        return jsonify({"success": False, "error": "ai_error", "message": str(e)}), 500

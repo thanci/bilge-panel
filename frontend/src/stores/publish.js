@@ -106,6 +106,23 @@ export const usePublishStore = defineStore('publish', () => {
     }
   }
 
+  async function createDraft(payload = {}) {
+    isLoading.value = true
+    try {
+      const created = await publishService.createDraft(payload)
+      drafts.value.unshift(created)
+      activeDraft.value = created
+      success.value = 'Yeni taslak oluşturuldu.'
+      _autoHideSuccess()
+      return created
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Taslak oluşturulamadı.'
+      return null
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   function setFilter(val) { filter.value = val }
 
   function _autoHideSuccess() {
@@ -117,7 +134,7 @@ export const usePublishStore = defineStore('publish', () => {
     isLoading, isSaving, isPublishing,
     error, success, filter,
     draftCount, publishedCount,
-    fetchDrafts, selectDraft, saveDraft,
+    fetchDrafts, selectDraft, saveDraft, createDraft,
     publishDraft, deleteDraft, setFilter,
   }
 })

@@ -49,6 +49,12 @@ const routes = [
         component: () => import('@/views/DevOpsView.vue'),
         meta: { title: 'Sistem & Tema' },
       },
+      {
+        path: 'guide',
+        name: 'guide',
+        component: () => import('@/views/GuideView.vue'),
+        meta: { title: 'Kullanım Rehberi' },
+      },
     ],
   },
   { path: '/:pathMatch(.*)*', redirect: '/' },

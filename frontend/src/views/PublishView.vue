@@ -1,14 +1,14 @@
 <script setup>
 /**
- * PublishView.vue — Yayın Kuyruğu & BB-Code Editör.
- * Sol panel: taslak listesi    |   Sağ panel: editör + önizleme
- * Editör, hem BB-Code ham metin hem de görsel önizleme destekler.
+ * PublishView.vue — Yayın Kuyruğu & Gelişmiş Editör.
+ * Sol panel: taslak listesi  |  Sağ panel: TipTap editör + stil/AI
  */
 
 import { ref, computed, onMounted, watch } from 'vue'
 import { usePublishStore } from '@/stores/publish'
 import { useRoute } from 'vue-router'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import RichEditor from '@/components/editor/RichEditor.vue'
 import api from '@/services/api'
 
 const publishStore = usePublishStore()
@@ -23,11 +23,40 @@ const editContent   = ref('')
 const editCategory  = ref('')
 const editTags      = ref('')
 const editNodeId    = ref('')
-const editorMode    = ref('edit')  // 'edit' | 'preview'
+const editTone      = ref('felsefi')
 const hasChanges    = ref(false)
 
-// BB-Code araç çubuğu
-const editorRef = ref(null)
+// AI İşlemi
+const aiProcessing  = ref(false)
+const aiError       = ref('')
+
+// Stiller — 24 ton
+const TONE_OPTIONS = [
+  { value: 'felsefi',       emoji: '🔮', label: 'Felsefi' },
+  { value: 'bilimsel',      emoji: '🔬', label: 'Bilimsel' },
+  { value: 'anlati',        emoji: '📖', label: 'Anlatı / Hikâye' },
+  { value: 'seo',           emoji: '🔍', label: 'SEO Odaklı' },
+  { value: 'yaratici',      emoji: '💡', label: 'Yaratıcı' },
+  { value: 'haber',         emoji: '📰', label: 'Haber / Güncel' },
+  { value: 'egitici',       emoji: '🎓', label: 'Eğitici / Didaktik' },
+  { value: 'sohbet',        emoji: '💬', label: 'Sohbet / Kişisel' },
+  { value: 'polemik',       emoji: '⚔️', label: 'Polemik / Tartışmacı' },
+  { value: 'ilham_verici',  emoji: '🌟', label: 'İlham Verici' },
+  { value: 'satirik',       emoji: '🎭', label: 'Satirik / İronik' },
+  { value: 'karsilastirma', emoji: '⚖️', label: 'Karşılaştırmalı Analiz' },
+  { value: 'tarihsel',      emoji: '🏛️', label: 'Tarihsel / Kronolojik' },
+  { value: 'teknik',        emoji: '🛠️', label: 'Teknik / Rehber' },
+  { value: 'psikolojik',    emoji: '🧠', label: 'Psikolojik' },
+  { value: 'spekulatif',    emoji: '🚀', label: 'Spekülatif / Gelecekçi' },
+  { value: 'minimalist',    emoji: '✂️', label: 'Minimalist / Öz' },
+  { value: 'akademik',      emoji: '📋', label: 'Akademik / Tez' },
+  { value: 'elestirel',     emoji: '🔎', label: 'Eleştirel / Derin Okuma' },
+  { value: 'mektup',        emoji: '✉️', label: 'Mektup / Hitap' },
+  { value: 'manifesto',     emoji: '📣', label: 'Manifesto' },
+  { value: 'diyalog',       emoji: '🎙️', label: 'Diyalog / Söyleşi' },
+  { value: 'mitolojik',     emoji: '🐉', label: 'Mitolojik / Sembolik' },
+  { value: 'deneme',        emoji: '✍️', label: 'Deneme (Essay)' },
+]
 
 onMounted(async () => {
   await publishStore.fetchDrafts()
@@ -53,6 +82,7 @@ watch(() => publishStore.activeDraft, (draft) => {
     editContent.value  = draft.content || ''
     editCategory.value = draft.category || ''
     editNodeId.value   = draft.xf_node_id || ''
+    editTone.value     = draft.tone || 'felsefi'
     editTags.value     = Array.isArray(draft.tags)
       ? draft.tags.join(', ')
       : (draft.tags || '')
@@ -71,62 +101,27 @@ function formatDate(str) {
   }).format(new Date(str))
 }
 
-// ── BB-Code Araç Çubuğu ──────────────────────────────
-function insertBBCode(tag, attr = '') {
-  const textarea = editorRef.value
-  if (!textarea) return
-  const start = textarea.selectionStart
-  const end   = textarea.selectionEnd
-  const sel   = editContent.value.substring(start, end)
-  const openTag  = attr ? `[${tag}=${attr}]` : `[${tag}]`
-  const closeTag = `[/${tag}]`
-  const replacement = `${openTag}${sel || 'metin'}${closeTag}`
-  editContent.value = editContent.value.substring(0, start) + replacement + editContent.value.substring(end)
-  hasChanges.value = true
-  // Odağı geri ver
-  setTimeout(() => {
-    textarea.focus()
-    const newPos = start + openTag.length + (sel ? sel.length : 5)
-    textarea.setSelectionRange(sel ? start + openTag.length : start + openTag.length, newPos)
-  }, 10)
+// ── Yeni Taslak Oluştur ─────────────────────────────
+async function createNewDraft() {
+  try {
+    await publishStore.createDraft({
+      title: 'Başlıksız Taslak',
+      content: '',
+      category: '',
+      tone: editTone.value,
+    })
+  } catch (e) {
+    publishStore.error = 'Taslak oluşturulamadı: ' + (e.response?.data?.error || e.message)
+  }
 }
 
-const bbToolbar = [
-  { label: 'B',   tag: 'b',      title: 'Kalın' },
-  { label: 'I',   tag: 'i',      title: 'İtalik' },
-  { label: 'U',   tag: 'u',      title: 'Altı çizili' },
-  { label: 'H1',  tag: 'heading', attr: '1', title: 'Başlık 1' },
-  { label: 'H2',  tag: 'heading', attr: '2', title: 'Başlık 2' },
-  { label: '•',   tag: 'list',   title: 'Liste' },
-  { label: '❝',  tag: 'quote',   title: 'Alıntı' },
-  { label: '</>',  tag: 'code',   title: 'Kod' },
-  { label: '🔗', tag: 'url',    title: 'Link' },
-  { label: '🖼', tag: 'img',    title: 'Resim' },
-]
-
-// ── BB-Code → HTML Önizleme ──────────────────────────
-const previewHtml = computed(() => {
-  let html = editContent.value || ''
-  // Basit BB-Code → HTML dönüşümü
-  html = html.replace(/\n/g, '<br>')
-  html = html.replace(/\[b\](.*?)\[\/b\]/gs,    '<strong>$1</strong>')
-  html = html.replace(/\[i\](.*?)\[\/i\]/gs,    '<em>$1</em>')
-  html = html.replace(/\[u\](.*?)\[\/u\]/gs,    '<u>$1</u>')
-  html = html.replace(/\[heading=1\](.*?)\[\/heading\]/gs, '<h2 style="font-size:1.5rem;font-weight:700;margin:0.75rem 0;">$1</h2>')
-  html = html.replace(/\[heading=2\](.*?)\[\/heading\]/gs, '<h3 style="font-size:1.25rem;font-weight:600;margin:0.5rem 0;">$1</h3>')
-  html = html.replace(/\[quote\](.*?)\[\/quote\]/gs, '<blockquote style="border-left:3px solid #6366f1;padding:0.5rem 1rem;margin:0.5rem 0;color:#9ca3af;">$1</blockquote>')
-  html = html.replace(/\[code\](.*?)\[\/code\]/gs, '<code style="background:#1e293b;padding:2px 6px;border-radius:4px;font-size:0.85em;">$1</code>')
-  html = html.replace(/\[url=(.*?)\](.*?)\[\/url\]/gs, '<a href="$1" style="color:#818cf8;text-decoration:underline;">$2</a>')
-  html = html.replace(/\[url\](.*?)\[\/url\]/gs, '<a href="$1" style="color:#818cf8;text-decoration:underline;">$1</a>')
-  html = html.replace(/\[img\](.*?)\[\/img\]/gs, '<img src="$1" style="max-width:100%;border-radius:8px;margin:0.5rem 0;" />')
-  html = html.replace(/\[list\](.*?)\[\/list\]/gs, (_, inner) => {
-    const items = inner.split(/\[\*\]/).filter(x => x.trim()).map(x => `<li>${x.trim()}</li>`).join('')
-    return `<ul style="padding-left:1.5rem;margin:0.5rem 0;">${items}</ul>`
-  })
-  return html
+// ── Kelime sayısı ───────────────────────────────────
+const wordCount = computed(() => {
+  const text = editContent.value.replace(/\[.*?\]/g, '').trim()
+  return text ? text.split(/\s+/).length : 0
 })
 
-// ── Kaydet ───────────────────────────────────────────
+// ── Kaydet ──────────────────────────────────────────
 async function handleSave() {
   if (!publishStore.activeDraft) return
   const tags = editTags.value
@@ -140,37 +135,64 @@ async function handleSave() {
     category:   editCategory.value,
     tags:       tags,
     xf_node_id: editNodeId.value || null,
+    tone:       editTone.value,
   })
   hasChanges.value = false
 }
 
-// ── Yayınla ──────────────────────────────────────────
+// ── Yayınla ─────────────────────────────────────────
 async function handlePublish() {
   if (!publishStore.activeDraft) return
   if (!editNodeId.value) {
     publishStore.error = 'Lütfen bir hedef forum seçin.'
     return
   }
-
-  // Önce kaydet, sonra yayınla
   if (hasChanges.value) await handleSave()
-
   if (confirm('Bu içeriği XenForo\'ya yayınlamak istediğinize emin misiniz?')) {
     await publishStore.publishDraft(publishStore.activeDraft.id)
   }
 }
 
-// ── Sil ──────────────────────────────────────────────
+// ── Sil ─────────────────────────────────────────────
 async function handleDelete(draftId) {
   if (!confirm('Bu taslağı kalıcı olarak silmek istediğinize emin misiniz?')) return
   await publishStore.deleteDraft(draftId)
 }
 
-// ── Kelime sayısı ────────────────────────────────────
-const wordCount = computed(() => {
-  const text = editContent.value.replace(/\[.*?\]/g, '').trim()
-  return text ? text.split(/\s+/).length : 0
-})
+// ── AI Editör Aksiyonları ───────────────────────────
+async function handleAiAction({ action, selectedText, fullText }) {
+  aiProcessing.value = true
+  aiError.value = ''
+
+  try {
+    const { data } = await api.post('/publish/ai-enhance', {
+      action,
+      selected_text: selectedText,
+      full_text: fullText,
+      tone: editTone.value,
+    })
+
+    if (data.success && data.data?.content) {
+      if (action === 'longer' || action === 'continue') {
+        // Tam metin değiştirme
+        editContent.value = data.data.content
+      } else if (selectedText && data.data.content) {
+        // Seçili metin değiştirme
+        editContent.value = editContent.value.replace(selectedText, data.data.content)
+      } else {
+        editContent.value = data.data.content
+      }
+      hasChanges.value = true
+      publishStore.success = 'AI işlemi tamamlandı.'
+      setTimeout(() => publishStore.success = '', 3000)
+    }
+  } catch (e) {
+    aiError.value = e.response?.data?.error || 'AI işlemi başarısız.'
+    setTimeout(() => aiError.value = '', 5000)
+  } finally {
+    aiProcessing.value = false
+  }
+}
 </script>
 
 <template>
@@ -205,10 +227,19 @@ const wordCount = computed(() => {
       </div>
     </Transition>
     <Transition name="slide-fade">
-      <div v-if="publishStore.error"
+      <div v-if="publishStore.error || aiError"
            class="bg-red-500/10 border border-red-500/30 text-red-400
                   text-sm px-4 py-2.5 rounded-lg">
-        {{ publishStore.error }}
+        {{ publishStore.error || aiError }}
+      </div>
+    </Transition>
+
+    <!-- AI İşleniyor overlay -->
+    <Transition name="slide-fade">
+      <div v-if="aiProcessing"
+           class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400
+                  text-sm px-4 py-2.5 rounded-lg flex items-center gap-2">
+        <span class="animate-spin">⚙</span> AI içeriği işliyor...
       </div>
     </Transition>
 
@@ -217,6 +248,15 @@ const wordCount = computed(() => {
 
       <!-- ═══ SOL PANEL: Taslak Listesi ═══ -->
       <div class="lg:col-span-3 space-y-3">
+
+        <!-- Yeni Taslak butonu -->
+        <button @click="createNewDraft"
+                class="w-full py-2.5 rounded-lg text-sm font-medium
+                       bg-indigo-500/10 border border-indigo-500/20 text-indigo-400
+                       hover:bg-indigo-500/15 hover:border-indigo-500/30
+                       transition-all flex items-center justify-center gap-2">
+          ＋ Yeni Taslak Oluştur
+        </button>
 
         <!-- Filtre -->
         <div class="flex gap-1 bg-gray-900 rounded-lg p-1">
@@ -246,7 +286,8 @@ const wordCount = computed(() => {
           <div class="text-3xl mb-3">📭</div>
           <div class="text-sm">Henüz taslak yok</div>
           <p class="text-xs text-gray-700 mt-2">
-            Görev kuyruğundan "Yayına Gönder" ile taslak oluşturun.
+            Yukarıdaki butona tıklayarak yeni taslak oluşturun veya
+            görev kuyruğundan "Yayına Gönder" ile taslak ekleyin.
           </p>
         </div>
 
@@ -293,7 +334,8 @@ const wordCount = computed(() => {
           <div class="text-4xl mb-4">📝</div>
           <h3 class="text-lg font-medium text-gray-300 mb-2">Düzenlemek için bir taslak seçin</h3>
           <p class="text-sm text-gray-500">
-            Soldaki listeden bir taslak seçin veya görev kuyruğundan "Yayına Gönder" butonuyla yeni taslak oluşturun.
+            Soldaki listeden bir taslak seçin, yukarıdaki "Yeni Taslak Oluştur" butonunu kullanın
+            veya görev kuyruğundan "Yayına Gönder" ile yeni taslak oluşturun.
           </p>
         </div>
 
@@ -308,9 +350,6 @@ const wordCount = computed(() => {
               <span class="text-xs text-gray-600 font-mono">#{{ publishStore.activeDraft.id }}</span>
             </div>
             <div class="flex items-center gap-2">
-              <span class="text-xs text-gray-500 tabular-nums">
-                {{ wordCount }} kelime
-              </span>
               <div v-if="hasChanges" class="w-2 h-2 bg-amber-400 rounded-full" title="Kaydedilmemiş değişiklik" />
             </div>
           </div>
@@ -339,8 +378,8 @@ const wordCount = computed(() => {
                      :disabled="publishStore.activeDraft.status === 'PUBLISHED'" />
             </div>
 
-            <!-- Kategori + Forum Seçimi + Etiketler -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <!-- Kategori + Forum + Etiketler + Yazım Stili -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
                 <label class="field-label">Kategori</label>
                 <input v-model="editCategory" @input="markChanged"
@@ -366,55 +405,25 @@ const wordCount = computed(() => {
                        placeholder="felsefe, stoacılık"
                        :disabled="publishStore.activeDraft.status === 'PUBLISHED'" />
               </div>
-            </div>
-
-            <!-- Editör Mod Seçimi -->
-            <div class="flex items-center justify-between">
-              <div class="flex gap-1 bg-gray-900 rounded-lg p-0.5">
-                <button @click="editorMode = 'edit'"
-                        :class="['px-3 py-1 rounded-md text-xs font-medium transition-all',
-                                 editorMode === 'edit'
-                                   ? 'bg-gray-800 text-gray-100'
-                                   : 'text-gray-400 hover:text-gray-200']">
-                  ✏️ BB-Code
-                </button>
-                <button @click="editorMode = 'preview'"
-                        :class="['px-3 py-1 rounded-md text-xs font-medium transition-all',
-                                 editorMode === 'preview'
-                                   ? 'bg-gray-800 text-gray-100'
-                                   : 'text-gray-400 hover:text-gray-200']">
-                  👁 Önizleme
-                </button>
-              </div>
-
-              <!-- BB-Code araç çubuğu (sadece edit modunda) -->
-              <div v-if="editorMode === 'edit' && publishStore.activeDraft.status !== 'PUBLISHED'"
-                   class="flex gap-1">
-                <button v-for="tool in bbToolbar" :key="tool.tag + (tool.attr || '')"
-                        @click="insertBBCode(tool.tag, tool.attr)"
-                        :title="tool.title"
-                        class="w-7 h-7 flex items-center justify-center rounded
-                               text-xs font-mono text-gray-400 bg-gray-800/60
-                               hover:bg-gray-700 hover:text-gray-200 transition-all">
-                  {{ tool.label }}
-                </button>
+              <div>
+                <label class="field-label">Yazım Stili</label>
+                <select v-model="editTone" @change="markChanged"
+                        class="select-field text-sm"
+                        :disabled="publishStore.activeDraft.status === 'PUBLISHED'">
+                  <option v-for="t in TONE_OPTIONS" :key="t.value" :value="t.value">
+                    {{ t.emoji }} {{ t.label }}
+                  </option>
+                </select>
               </div>
             </div>
 
-            <!-- BB-Code Editör -->
-            <div v-if="editorMode === 'edit'">
-              <textarea ref="editorRef"
-                        v-model="editContent" @input="markChanged"
-                        class="editor-textarea"
-                        placeholder="BB-Code formatında içerik yazın..."
-                        :disabled="publishStore.activeDraft.status === 'PUBLISHED'"
-                        rows="18" />
-            </div>
-
-            <!-- Önizleme -->
-            <div v-if="editorMode === 'preview'">
-              <div class="preview-area" v-html="previewHtml" />
-            </div>
+            <!-- TipTap Editör -->
+            <RichEditor
+              v-model="editContent"
+              :disabled="publishStore.activeDraft.status === 'PUBLISHED'"
+              @change="markChanged"
+              @ai-action="handleAiAction"
+            />
 
             <!-- Eylem butonları -->
             <div v-if="publishStore.activeDraft.status !== 'PUBLISHED'"
@@ -428,7 +437,7 @@ const wordCount = computed(() => {
               </button>
 
               <button @click="handlePublish"
-                      :disabled="publishStore.isPublishing"
+                      :disabled="publishStore.isPublishing || aiProcessing"
                       class="btn-primary py-2.5 px-5">
                 <span v-if="publishStore.isPublishing" class="animate-spin">⚙</span>
                 <span v-else>🚀</span>
@@ -462,44 +471,6 @@ const wordCount = computed(() => {
   background: rgba(99, 102, 241, 0.04);
 }
 
-/* ── Editör ────────────────────────────────────── */
-.editor-textarea {
-  width: 100%;
-  min-height: 400px;
-  padding: 1rem;
-  font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
-  font-size: 0.875rem;
-  line-height: 1.7;
-  color: #e5e7eb;
-  background: #0a0f1e;
-  border: 1px solid rgba(55, 65, 81, 0.4);
-  border-radius: 0.5rem;
-  resize: vertical;
-  outline: none;
-  transition: border-color 0.2s;
-}
-.editor-textarea:focus {
-  border-color: rgba(99, 102, 241, 0.5);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
-}
-.editor-textarea:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* ── Önizleme ──────────────────────────────────── */
-.preview-area {
-  min-height: 400px;
-  padding: 1.25rem;
-  font-size: 0.9375rem;
-  line-height: 1.8;
-  color: #d1d5db;
-  background: #0a0f1e;
-  border: 1px solid rgba(55, 65, 81, 0.4);
-  border-radius: 0.5rem;
-  overflow-y: auto;
-}
-
 /* ── Butonlar ──────────────────────────────────── */
 .btn-secondary {
   display: inline-flex;
@@ -512,6 +483,7 @@ const wordCount = computed(() => {
   color: #d1d5db;
   border: 1px solid rgba(75, 85, 99, 0.4);
   transition: all 0.15s;
+  cursor: pointer;
 }
 .btn-secondary:hover:not(:disabled) {
   background: rgba(75, 85, 99, 0.5);

@@ -5,16 +5,17 @@ Bu görev, verilen parametrelere göre tamamen özgün bir makale üretir.
 YouTube dönüştürücüden farkı: harici veri çekme adımı yoktur.
 Prompt mühendisliği ve BudgetGuard entegrasyonu kritik noktadır.
 
-Desteklenen Ton'lar:
-  felsefi  — Spekülatif, soru soran üslup
-  bilimsel — Kanıt odaklı, akademik
-  anlatı   — Hikâye örgüsü kuran, edebi
-  seo      — Arama motoru odaklı, yapılandırılmış
+Desteklenen Ton'lar (24 adet):
+  felsefi, bilimsel, anlatı, seo, yaratıcı, haber, eğitici, sohbet,
+  polemik, ilham_verici, satirik, karşılaştırma, tarihsel, teknik,
+  psikolojik, spekülatif, minimalist, akademik, eleştirel, mektup,
+  manifesto, diyalog, mitolojik, deneme
 
 Uzunluk Hedefleri:
-  kısa  — ~500 kelime → max_tokens=800
-  orta  — ~900 kelime → max_tokens=1500
-  uzun  — ~1500 kelime → max_tokens=2500
+  kısa     — ~700 kelime  → max_tokens=1200
+  orta     — ~1500 kelime → max_tokens=3000
+  uzun     — ~3000 kelime → max_tokens=5500
+  çok_uzun — ~5000 kelime → max_tokens=9000
 """
 
 import logging
@@ -37,15 +38,23 @@ from app.notifications.telegram import notify_task_success, notify_task_failed
 logger = logging.getLogger(__name__)
 
 
-# Uzunluk → max_tokens eşlem tablosu
+# Uzunluk → max_tokens eşlem tablosu (artırılmış)
 _LENGTH_TO_MAX_TOKENS = {
-    "kısa": 800,
-    "orta": 1500,
-    "uzun": 2500,
+    "kısa":     1200,
+    "orta":     3000,
+    "uzun":     5500,
+    "çok_uzun": 9000,
 }
 
-# Geçerli ton değerleri
-_VALID_TONES = {"felsefi", "bilimsel", "anlatı", "seo"}
+# Geçerli ton değerleri (24 ton)
+_VALID_TONES = {
+    "felsefi", "bilimsel", "anlatı", "seo",
+    "yaratıcı", "haber", "eğitici", "sohbet",
+    "polemik", "ilham_verici", "satirik", "karşılaştırma",
+    "tarihsel", "teknik", "psikolojik", "spekülatif",
+    "minimalist", "akademik", "eleştirel", "mektup",
+    "manifesto", "diyalog", "mitolojik", "deneme",
+}
 
 
 # ============================================================

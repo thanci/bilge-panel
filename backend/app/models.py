@@ -309,6 +309,8 @@ class PublishDraft(db.Model):
     tags          = db.Column(db.Text, nullable=True)    # JSON array string
     # XenForo hedef forum node ID'si
     xf_node_id    = db.Column(db.Integer, nullable=True)
+    # Yazım tonu/stili (24 tondan biri)
+    tone          = db.Column(db.String(32), nullable=True, default="felsefi")
     # Durum: DRAFT, PUBLISHED
     status        = db.Column(db.String(16), nullable=False, default="DRAFT", index=True)
     # Yayınlanmış ise XenForo bilgileri
@@ -336,6 +338,7 @@ class PublishDraft(db.Model):
             "category":       self.category,
             "tags":           tags_list,
             "xf_node_id":     self.xf_node_id,
+            "tone":           self.tone,
             "status":         self.status,
             "xf_thread_id":   self.xf_thread_id,
             "xf_thread_url":  self.xf_thread_url,

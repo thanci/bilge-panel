@@ -10,12 +10,13 @@ const route     = useRoute()
 const authStore = useAuthStore()
 
 const NAV = [
-  { name: 'dashboard', icon: '◈',  label: 'Dashboard' },
-  { name: 'tasks',     icon: '⚡', label: 'Görev Kuyruğu' },
-  { name: 'publish',   icon: '📝', label: 'Yayın Kuyruğu' },
-  { name: 'budget',    icon: '◎',  label: 'Bütçe' },
-  { name: 'xenforo',  icon: '🏛',  label: 'XenForo' },
-  { name: 'devops',   icon: '🖥',  label: 'Sistem & Tema' },
+  { name: 'dashboard', icon: '◈',  label: 'Dashboard',      tip: 'Genel bakış: bütçe, görev durumu, son aktiviteler' },
+  { name: 'tasks',     icon: '⚡', label: 'Görev Kuyruğu',  tip: 'AI makale/YouTube görevlerini başlat, takip et, yönet' },
+  { name: 'publish',   icon: '📝', label: 'Yayın Kuyruğu',  tip: 'Üretilen içerikleri düzenle, önizle, XenForo\'ya gönder' },
+  { name: 'budget',    icon: '◎',  label: 'Bütçe',           tip: 'API harcama limiti, maliyet analizi, model bazlı takip' },
+  { name: 'xenforo',  icon: '🏛',  label: 'XenForo',         tip: 'Forum listesi, konu yönetimi, API bağlantı durumu' },
+  { name: 'devops',   icon: '🖥',  label: 'Sistem & Tema',   tip: 'SSH, sunucu durumu, XF güncelleme, tema editörü' },
+  { name: 'guide',    icon: '❓',  label: 'Rehber',           tip: 'Panel kullanım kılavuzu ve yardım' },
 ]
 
 async function logout() {
@@ -51,13 +52,18 @@ async function logout() {
         :key="item.name"
         :to="{ name: item.name }"
         :class="[
-          'nav-link',
+          'nav-link group',
           { 'active': route.name === item.name },
           { 'justify-center': collapsed },
         ]"
-        :title="collapsed ? item.label : ''">
+        :title="collapsed ? item.label : item.tip">
         <span :class="['text-base shrink-0', collapsed ? 'text-lg' : '']">{{ item.icon }}</span>
         <span v-if="!collapsed" class="truncate">{{ item.label }}</span>
+        <!-- Tooltip -->
+        <span v-if="!collapsed"
+              class="nav-tooltip">
+          {{ item.tip }}
+        </span>
       </RouterLink>
     </nav>
 

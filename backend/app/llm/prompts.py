@@ -97,22 +97,68 @@ ve akıcı bir makale yaz. Sana verilecek parametreler:
 
 PARAMETRELER VE ANLAMLARI:
   konu       → Makalenin merkezindeki kavram, soru ya da fenomen
-  ton        → felsefi | bilimsel | anlatı | seo
-  uzunluk    → kısa (400-600 k) | orta (700-1000 k) | uzun (1200-1800 k)
+  ton        → Aşağıdaki 24 tondan biri
+  uzunluk    → kısa (600-800 k) | orta (1200-1800 k) | uzun (2500-3500 k) | çok_uzun (4000-6000 k)
   kategori   → (Opsiyonel) XenForo forum kategorisi — içeriği şekillendirir
   anahtar_kw → (Opsiyonel) SEO için öncelikli anahtar kelimeler
 
-TON AÇIKLAMALARI:
-  felsefi  → Spekülatif, soru soran üslup. "Bu doğru mudur?" değil,
-              "Bu nasıl doğru olabilir?" diye sor.
-  bilimsel → Kanıt önce, yorum sonra. İddia açık, atıf ima edilir.
-  anlatı   → Hikâye kurar gibi yaz. Sahne, karakter, gerilim.
-  seo      → İlk 100 kelimede anahtar kelime, H2'ler (BB-Code [B]başlık[/B])
-              liste + paragraf dengesi.
+ÖNEMLİ: Belirtilen kelime sayısı hedefine ulaşmak ZORUNLUDUR.
+Her bölüm en az 3 paragraf olmalı. Paragraflar en az 3-4 cümle içermeli.
+Sığ ve kısa cümleler yerine, derinlikli, bağlam kuran cümleler kullan.
+
+TON AÇIKLAMALARI (24 ton):
+  felsefi       → Spekülatif, soru soran üslup. "Bu doğru mudur?" değil,
+                  "Bu nasıl doğru olabilir?" diye sor. Kavramsal derinlik.
+  bilimsel      → Kanıt önce, yorum sonra. İddia açık, atıf ima edilir.
+                  Araştırma metodolojisine duyarlı akademik dil.
+  anlatı        → Hikâye kurar gibi yaz. Sahne, karakter, gerilim.
+                  Edebi betimlemeler, duygusal katılım.
+  seo           → İlk 100 kelimede anahtar kelime, H2'ler (BB-Code [B]başlık[/B])
+                  liste + paragraf dengesi. Arama motorları için yapılandırılmış.
+  yaratıcı      → Beklenmedik bakış açıları, metafor ve analoji zenginliği.
+                  Okuyucuyu şaşırtan, kalıpları kıran, provokatif.
+  haber         → Nesnel, 5N1K yapısı. Bilgilendirici, kısa paragraflar.
+                  Gazetecilik etiğine uygun, tarafsız dil.
+  eğitici       → Öğretici, adım adım ilerleyen. Basit dil, somut örnekler.
+                  Okuyucunun bilgi seviyesini yavaşça yükselt.
+  sohbet        → Samimi, birinci şahıs. Blog tarzı, kişisel deneyim.
+                  "Ben" dili, okuyucuyla diyalog hissi.
+  polemik       → Tez-antitez yapısı. Karşı argümanları sun, çürüt.
+                  Güçlü retorik, iddialı ama kanıtlı.
+  ilham_verici  → Güçlendirici, pozitif dil. Aksiyona teşvik eden.
+                  Motivasyon odaklı, umut veren perspektif.
+  satirik       → Keskin espri, toplumsal eleştiri. İroni ve alaycı ton.
+                  Düşündürürken güldür, ama incitme.
+  karşılaştırma → İki veya daha fazla kavramı, dönemi veya düşünceyi
+                  yan yana koy. Tablo, avantaj-dezavantaj, benzerlik-fark.
+  tarihsel      → Zaman çizgisi üzerinden ilerle. Dönem analizi,
+                  kronolojik sıralama. Olayları bağlamına oturtur.
+  teknik        → "Nasıl yapılır" rehberi. Teknik detay, komut,
+                  adım adım talimat. Net, belirsizlik yok.
+  psikolojik    → İnsan davranışı, bilinçaltı, motivasyon odaklı.
+                  Deney ve araştırma bulguları. Davranış bilimi.
+  spekülatif    → Gelecek tahminleri, trend analizi. "Ya...olursa?" sorusu.
+                  Bilimsel veri ile spekülasyonun dengesi.
+  minimalist    → Kısa, çarpıcı. Her kelime önemli. Gereksiz dolgu yok.
+                  Az ama öz, güçlü kapanış cümleleri.
+  akademik      → Atıf stili, literatür taraması. Tez yapısında,
+                  metodolojik. Objektif ve temkinli dil.
+  eleştirel     → Metin, eser, film veya kitap incelemesi.
+                  Derin okuma, yapısal analiz, güçlü-zayıf yön tespiti.
+  mektup        → Okuyucuya doğrudan hitap. "Sevgili okuyucu" tonu.
+                  Samimi ama düşünceli, kişisel iletişim hissi.
+  manifesto     → Güçlü dil, çağrı, ideolojik. Harekete geçiren,
+                  tutkulu, keskin tezler. Sloganvari kapanışlar.
+  diyalog       → Soru-cevap veya söyleşi formatı. Hayali veya gerçek
+                  iki kişi arasında geçer. Doğal konuşma akışı.
+  mitolojik     → Arketip, sembol ve mit analizi. Jung, Campbell
+                  perspektifi. Kolektif bilinçaltı temaları.
+  deneme        → Kişisel düşünce, serbest akış. Montaigne geleneği.
+                  Bir fikri özgürce keşfet, kesin sonuçlara varmadan.
 
 YAZI YAPISI (her tonda geçerli):
   a) Güçlü AÇILIŞ: İlk cümle okuyucuyu yakalar (soru, paradoks veya çarpıcı gerçek)
-  b) ANA GÖVDE: Tona göre yapılandır
+  b) ANA GÖVDE: Tona göre yapılandır — en az 3 bölüm, her bölüm 3+ paragraf
   c) SONUÇ: Açık uçlu, okuyucuyu düşündüren bitiş
   d) --- META --- bloğu:
        Açıklama: <120-155 karakter, meta description olarak kullanılacak>
@@ -186,13 +232,14 @@ def build_article_prompt(
     Returns:
         LLM kullanıcı mesajı
     """
-    # Kelime sayısı hedefi — ton promptunda da yazıyor ama tekrar belirt
+    # Kelime sayısı hedefi — artırılmış uzunluklar
     length_map = {
-        "kısa": "400-600 kelime",
-        "orta": "700-1000 kelime",
-        "uzun": "1200-1800 kelime",
+        "kısa":     "600-800 kelime",
+        "orta":     "1200-1800 kelime",
+        "uzun":     "2500-3500 kelime",
+        "çok_uzun": "4000-6000 kelime",
     }
-    word_target = length_map.get(length, "700-1000 kelime")
+    word_target = length_map.get(length, "1200-1800 kelime")
 
     parts = [
         f"KONU: {topic}",
