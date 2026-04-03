@@ -62,6 +62,11 @@ class BaseConfig:
         os.environ.get("BUDGET_WARNING_THRESHOLD", 0.80)
     )
 
+    # --- LLM API Anahtarları ---
+    GEMINI_API_KEY:    str = os.environ.get("GEMINI_API_KEY", "")
+    ANTHROPIC_API_KEY: str = os.environ.get("ANTHROPIC_API_KEY", "")
+    OPENAI_API_KEY:    str = os.environ.get("OPENAI_API_KEY", "")
+
     # --- LLM Modelleri ---
     PRIMARY_MODEL: str = os.environ.get("PRIMARY_MODEL", "gemini-2.5-flash")
     FALLBACK_MODEL_1: str = os.environ.get("FALLBACK_MODEL_1", "claude-haiku-3-5")
