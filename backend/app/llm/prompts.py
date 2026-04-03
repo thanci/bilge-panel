@@ -97,7 +97,7 @@ ve akıcı bir makale yaz. Sana verilecek parametreler:
 
 PARAMETRELER VE ANLAMLARI:
   konu       → Makalenin merkezindeki kavram, soru ya da fenomen
-  ton        → Aşağıdaki 24 tondan biri
+  ton        → Aşağıdaki 24 tondan biri veya birden fazlası (+ ile birleşik, ör: felsefi+bilimsel)
   uzunluk    → kısa (600-800 k) | orta (1200-1800 k) | uzun (2500-3500 k) | çok_uzun (4000-6000 k)
   kategori   → (Opsiyonel) XenForo forum kategorisi — içeriği şekillendirir
   anahtar_kw → (Opsiyonel) SEO için öncelikli anahtar kelimeler
@@ -243,9 +243,17 @@ def build_article_prompt(
 
     parts = [
         f"KONU: {topic}",
-        f"TON: {tone}",
-        f"HEDEF UZUNLUK: {word_target}",
     ]
+
+    # Çoklu ton desteği
+    if "+" in tone:
+        tone_parts_list = tone.split("+")
+        parts.append(f"TON: Çoklu — {', '.join(tone_parts_list)}")
+        parts.append(f"NOT: Bu tonları harmanlayarak yaz. Her birinin özelliklerini dengeli şekilde taşı.")
+    else:
+        parts.append(f"TON: {tone}")
+
+    parts.append(f"HEDEF UZUNLUK: {word_target}")
 
     if category:
         parts.append(f"KATEGORİ: {category}")

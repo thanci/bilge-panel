@@ -67,6 +67,13 @@ function shortId(id) {
   return id ? id.slice(0, 8) + '…' : '—'
 }
 
+function parsePayload(task) {
+  try {
+    const p = typeof task.payload === 'string' ? JSON.parse(task.payload) : (task.payload || {})
+    return p.topic || p.url || ''
+  } catch { return '' }
+}
+
 async function revoke(taskId) {
   if (!confirm('Bu görevi iptal etmek istediğinize emin misiniz?')) return
   await taskStore.revokeTask(taskId)
@@ -130,6 +137,9 @@ async function revoke(taskId) {
                 ID
               </th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                Başlık
+              </th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider w-24">
                 Tür
               </th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
@@ -176,6 +186,13 @@ async function revoke(taskId) {
                 <code class="text-xs font-mono text-gray-400 bg-gray-900/60 px-1.5 py-0.5 rounded">
                   {{ shortId(task.task_id) }}
                 </code>
+              </td>
+
+              <!-- Başlık / Konu -->
+              <td class="px-4 py-3">
+                <span class="text-gray-200 text-xs truncate block max-w-[180px]" :title="parsePayload(task)">
+                  {{ parsePayload(task) || '—' }}
+                </span>
               </td>
 
               <!-- Tür -->

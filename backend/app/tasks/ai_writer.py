@@ -106,19 +106,22 @@ def ai_article_task(self, payload: dict) -> dict:
         if len(topic) < 5:
             raise ValueError(f"Konu çok kısa: '{topic}'")
 
-        tone   = payload.get("tone", "felsefi").strip().lower()
+        tone_raw = payload.get("tone", "felsefi").strip().lower()
         length = payload.get("length", "orta").strip().lower()
         category  = payload.get("category", "")
         keywords  = payload.get("keywords", "")
         extra_notes = payload.get("extra_notes", "")
         temperature = float(payload.get("temperature", 0.75))
 
-        # Geçersiz ton kontrolü
-        if tone not in _VALID_TONES:
+        # Çoklu ton desteği (felsefi+bilimsel gibi + ile ayrılmış)
+        tone_parts = [t.strip() for t in tone_raw.split("+") if t.strip()]
+        valid_tones = [t for t in tone_parts if t in _VALID_TONES]
+        if not valid_tones:
             logger.warning(
-                f"[WRITER] Geçersiz ton '{tone}', 'felsefi' kullanılıyor."
+                f"[WRITER] Geçersiz tonlar '{tone_raw}', 'felsefi' kullanılıyor."
             )
-            tone = "felsefi"
+            valid_tones = ["felsefi"]
+        tone = "+".join(valid_tones)
 
         # Geçersiz uzunluk kontrolü
         if length not in _LENGTH_TO_MAX_TOKENS:

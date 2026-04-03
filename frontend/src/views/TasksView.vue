@@ -5,9 +5,7 @@ import TaskQueue from '@/components/tasks/TaskQueue.vue'
 
 <template>
   <div class="max-w-screen-xl mx-auto space-y-6">
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-      <TaskForms />
-      <TaskQueue />
-    </div>
+    <TaskForms />
+    <TaskQueue />
   </div>
 </template>

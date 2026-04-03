@@ -1,10 +1,10 @@
 <script setup>
 /**
  * TaskForms.vue — YouTube ve Makale görev formları.
- * xf_node_id ile doğrudan forum seçimi ve yayınlama desteği eklendi.
+ * v2: 24 ton çoklu seçim, kategori forum listesinden, uzunluk güncellendi.
  */
 
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useTaskStore }   from '@/stores/tasks'
 import { useBudgetStore } from '@/stores/budget'
 import api                from '@/services/api'
@@ -13,7 +13,7 @@ const taskStore   = useTaskStore()
 const budgetStore = useBudgetStore()
 const activeTab   = ref('youtube')
 
-// ── XenForo forum listesi (yayın hedefi seçimi) ─────────
+// ── XenForo forum listesi ────────────────────────────────
 const xfNodes = ref([])
 onMounted(async () => {
   try {
@@ -29,7 +29,7 @@ const ytForm = reactive({
   url:         '',
   extra_notes: '',
   max_tokens:  2500,
-  xf_node_id:  '',   // Boşsa yayınlanmaz — sadece üretilir
+  xf_node_id:  '',
 })
 
 async function submitYoutube() {
@@ -43,31 +43,90 @@ async function submitYoutube() {
 // ── Makale formu ─────────────────────────────────────────
 const articleForm = reactive({
   topic:       '',
-  tone:        'felsefi',
+  tones:       ['felsefi'],   // Çoklu seçim — array
   length:      'orta',
   category:    '',
   keywords:    '',
-  extra_notes: '',
   temperature: 0.75,
   xf_node_id:  '',
 })
 
 const TONE_OPTIONS = [
-  { value: 'felsefi',  label: '🧠 Felsefi',  desc: 'Spekülatif, soru soran' },
-  { value: 'bilimsel', label: '🔬 Bilimsel', desc: 'Kanıt odaklı, akademik' },
-  { value: 'anlatı',   label: '📖 Anlatı',   desc: 'Hikâye örgüsü, edebi' },
-  { value: 'seo',      label: '🔍 SEO',      desc: 'Arama motoru optimized' },
+  { value: 'felsefi',       emoji: '🔮', label: 'Felsefi' },
+  { value: 'bilimsel',      emoji: '🔬', label: 'Bilimsel' },
+  { value: 'anlati',        emoji: '📖', label: 'Anlatı' },
+  { value: 'seo',           emoji: '🔍', label: 'SEO' },
+  { value: 'yaratici',      emoji: '💡', label: 'Yaratıcı' },
+  { value: 'haber',         emoji: '📰', label: 'Haber' },
+  { value: 'egitici',       emoji: '🎓', label: 'Eğitici' },
+  { value: 'sohbet',        emoji: '💬', label: 'Sohbet' },
+  { value: 'polemik',       emoji: '⚔️', label: 'Polemik' },
+  { value: 'ilham_verici',  emoji: '🌟', label: 'İlham Verici' },
+  { value: 'satirik',       emoji: '🎭', label: 'Satirik' },
+  { value: 'karsilastirma', emoji: '⚖️', label: 'Karşılaştırma' },
+  { value: 'tarihsel',      emoji: '🏛️', label: 'Tarihsel' },
+  { value: 'teknik',        emoji: '🛠️', label: 'Teknik' },
+  { value: 'psikolojik',    emoji: '🧠', label: 'Psikolojik' },
+  { value: 'spekulatif',    emoji: '🚀', label: 'Spekülatif' },
+  { value: 'minimalist',    emoji: '✂️', label: 'Minimalist' },
+  { value: 'akademik',      emoji: '📋', label: 'Akademik' },
+  { value: 'elestirel',     emoji: '🔎', label: 'Eleştirel' },
+  { value: 'mektup',        emoji: '✉️', label: 'Mektup' },
+  { value: 'manifesto',     emoji: '📣', label: 'Manifesto' },
+  { value: 'diyalog',       emoji: '🎙️', label: 'Diyalog' },
+  { value: 'mitolojik',     emoji: '🐉', label: 'Mitolojik' },
+  { value: 'deneme',        emoji: '✍️', label: 'Deneme' },
 ]
 
 const LENGTH_OPTIONS = [
-  { value: 'kısa', label: 'Kısa', desc: '~500 kelime' },
-  { value: 'orta', label: 'Orta', desc: '~900 kelime' },
-  { value: 'uzun', label: 'Uzun', desc: '~1500 kelime' },
+  { value: 'kısa',     label: 'Kısa',     desc: '~700 kelime' },
+  { value: 'orta',     label: 'Orta',     desc: '~1500 kelime' },
+  { value: 'uzun',     label: 'Uzun',     desc: '~3000 kelime' },
+  { value: 'çok_uzun', label: 'Çok Uzun', desc: '~5000 kelime' },
 ]
+
+// Ton toggle
+function toggleTone(tone) {
+  const idx = articleForm.tones.indexOf(tone)
+  if (idx >= 0) {
+    if (articleForm.tones.length > 1) articleForm.tones.splice(idx, 1)
+  } else {
+    articleForm.tones.push(tone)
+  }
+}
+
+// Ton açık mı?
+function isToneSelected(tone) {
+  return articleForm.tones.includes(tone)
+}
+
+// Seçilen tonları birleştir (backend'e gönderirken)
+const toneString = computed(() => articleForm.tones.join('+'))
+
+// Ton dropdown
+const showToneDropdown = ref(false)
+const selectedTonesLabel = computed(() => {
+  if (articleForm.tones.length === 0) return 'Ton seçin'
+  if (articleForm.tones.length <= 3) {
+    return articleForm.tones.map(t => {
+      const opt = TONE_OPTIONS.find(o => o.value === t)
+      return opt ? `${opt.emoji} ${opt.label}` : t
+    }).join(', ')
+  }
+  return `${articleForm.tones.length} ton seçili`
+})
 
 async function submitArticle() {
   if (!articleForm.topic) return
-  const payload = { ...articleForm }
+  const payload = {
+    topic: articleForm.topic,
+    tone: toneString.value,
+    length: articleForm.length,
+    category: articleForm.category,
+    keywords: articleForm.keywords,
+    temperature: articleForm.temperature,
+    xf_node_id: articleForm.xf_node_id || undefined,
+  }
   if (!payload.xf_node_id) delete payload.xf_node_id
   await taskStore.queueArticle(payload)
 }
@@ -182,60 +241,74 @@ async function submitArticle() {
                :disabled="budgetStore.isBlocked" />
       </div>
 
-      <!-- Ton seçimi (2×2 grid) -->
-      <div>
-        <label class="field-label">Yazı Tonu</label>
-        <div class="grid grid-cols-2 gap-2">
-          <button v-for="opt in TONE_OPTIONS" :key="opt.value"
-                  @click="articleForm.tone = opt.value"
-                  :class="['flex flex-col items-start p-3 rounded-lg border text-left transition-all duration-150',
-                           articleForm.tone === opt.value
-                             ? 'border-indigo-500/50 bg-indigo-500/10 text-gray-100'
-                             : 'border-gray-700 bg-gray-900/50 text-gray-400 hover:border-gray-600']"
-                  :disabled="budgetStore.isBlocked">
-            <span class="text-sm font-medium">{{ opt.label }}</span>
-            <span class="text-xs text-gray-500 mt-0.5">{{ opt.desc }}</span>
-          </button>
-        </div>
+      <!-- Yazım Stili — Çoklu Seçim Dropdown -->
+      <div class="relative">
+        <label class="field-label">Yazım Stili (Çoklu Seçim)</label>
+        <button @click="showToneDropdown = !showToneDropdown"
+                :disabled="budgetStore.isBlocked"
+                :class="['w-full text-left input-field flex items-center justify-between',
+                         showToneDropdown ? 'ring-2 ring-indigo-500/50 border-indigo-500/50' : '']">
+          <span class="text-sm truncate">{{ selectedTonesLabel }}</span>
+          <span :class="['text-gray-500 text-xs transition-transform duration-200',
+                         showToneDropdown ? 'rotate-180' : '']">▼</span>
+        </button>
+
+        <!-- Dropdown panel -->
+        <Transition name="fade">
+          <div v-if="showToneDropdown"
+               class="absolute z-50 left-0 right-0 mt-1 bg-gray-800 border border-gray-700/50
+                      rounded-lg shadow-xl max-h-60 overflow-y-auto py-1">
+            <button v-for="opt in TONE_OPTIONS" :key="opt.value"
+                    @click="toggleTone(opt.value)"
+                    :class="['w-full flex items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors',
+                             isToneSelected(opt.value)
+                               ? 'bg-indigo-500/10 text-indigo-300'
+                               : 'text-gray-400 hover:bg-gray-700/50 hover:text-gray-200']">
+              <span class="w-4 text-center">
+                {{ isToneSelected(opt.value) ? '✓' : '' }}
+              </span>
+              <span>{{ opt.emoji }} {{ opt.label }}</span>
+            </button>
+          </div>
+        </Transition>
       </div>
+      <!-- Dropdown dışı tıklama -->
+      <div v-if="showToneDropdown" class="fixed inset-0 z-40" @click="showToneDropdown = false" />
 
       <!-- Uzunluk -->
       <div>
         <label class="field-label">Uzunluk</label>
-        <div class="flex gap-2">
+        <div class="grid grid-cols-4 gap-2">
           <button v-for="opt in LENGTH_OPTIONS" :key="opt.value"
                   @click="articleForm.length = opt.value"
-                  :class="['flex-1 py-2 px-3 rounded-lg border text-center text-sm transition-all duration-150',
+                  :class="['py-2 px-2 rounded-lg border text-center text-sm transition-all duration-150',
                            articleForm.length === opt.value
                              ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-300'
                              : 'border-gray-700 bg-gray-900/50 text-gray-400 hover:border-gray-600']"
                   :disabled="budgetStore.isBlocked">
-            <div class="font-medium">{{ opt.label }}</div>
-            <div class="text-xs text-gray-500">{{ opt.desc }}</div>
+            <div class="font-medium text-xs">{{ opt.label }}</div>
+            <div class="text-[10px] text-gray-500">{{ opt.desc }}</div>
           </button>
         </div>
       </div>
 
-      <!-- Kategori + Anahtar Kelimeler -->
+      <!-- Kategori (Forum listesinden seçim) + Anahtar Kelimeler -->
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="field-label">Kategori</label>
-          <input v-model="articleForm.category" type="text" class="input-field"
-                 placeholder="Felsefe" :disabled="budgetStore.isBlocked" />
+          <select v-model="articleForm.category" class="select-field"
+                  :disabled="budgetStore.isBlocked">
+            <option value="">— Kategori seçin —</option>
+            <option v-for="n in xfNodes" :key="n.node_id" :value="n.title || n.node_name">
+              {{ n.title || n.node_name }}
+            </option>
+          </select>
         </div>
         <div>
           <label class="field-label">Anahtar Kelimeler</label>
           <input v-model="articleForm.keywords" type="text" class="input-field"
                  placeholder="stoicism, kaygı" :disabled="budgetStore.isBlocked" />
         </div>
-      </div>
-
-      <!-- Ek not -->
-      <div>
-        <label class="field-label">Yönlendirme Notu</label>
-        <textarea v-model="articleForm.extra_notes" class="textarea-field" rows="2"
-                  placeholder="Marcus Aurelius'a odaklan..."
-                  :disabled="budgetStore.isBlocked" />
       </div>
 
       <!-- Yaratıcılık slider -->
@@ -281,4 +354,6 @@ async function submitArticle() {
 .slide-fade-enter-active, .slide-fade-leave-active { transition: all 0.25s ease; }
 .slide-fade-enter-from { opacity: 0; transform: translateY(-8px); }
 .slide-fade-leave-to   { opacity: 0; transform: translateY(-4px); }
+.fade-enter-active, .fade-leave-active { transition: opacity 0.15s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

@@ -101,7 +101,7 @@ def _extract_video_id(url: str) -> str:
 
 def _fetch_transcript(video_id: str) -> tuple[str, str, str]:
     """
-    youtube-transcript-api kullanarak transkripti çeker.
+    youtube-transcript-api v1.x kullanarak transkripti çeker.
     Önce Türkçe, sonra İngilizce, sonra mevcut herhangi bir dil denenir.
 
     Returns:
@@ -111,19 +111,36 @@ def _fetch_transcript(video_id: str) -> tuple[str, str, str]:
         TranscriptFetchError — Transkript alınamadı
     """
     try:
-        from youtube_transcript_api import (
-            YouTubeTranscriptApi,
+        from youtube_transcript_api import YouTubeTranscriptApi
+    except ImportError:
+        raise TranscriptFetchError("youtube-transcript-api kütüphanesi yüklü değil.")
+
+    # v1.x uyumlu exception import
+    try:
+        from youtube_transcript_api._errors import (
             TranscriptsDisabled,
             NoTranscriptFound,
             VideoUnavailable,
         )
     except ImportError:
-        raise TranscriptFetchError("youtube-transcript-api kütüphanesi yüklü değil.")
+        # v0.x fallback
+        try:
+            from youtube_transcript_api import (
+                TranscriptsDisabled,
+                NoTranscriptFound,
+                VideoUnavailable,
+            )
+        except ImportError:
+            TranscriptsDisabled = Exception
+            NoTranscriptFound = Exception
+            VideoUnavailable = Exception
 
     try:
-        # Dil önceliği: Türkçe → İngilizce → otomatik üretilmiş → herhangi biri
+        # v1.x: Instance oluştur ve list() kullan
+        ytt_api = YouTubeTranscriptApi()
+
         try:
-            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            transcript_list = ytt_api.list(video_id)
 
             # Manuel Türkçe transkript ara
             try:
@@ -142,20 +159,19 @@ def _fetch_transcript(video_id: str) -> tuple[str, str, str]:
                     except NoTranscriptFound:
                         # Son çare: mevcut ilk transkript
                         transcript = next(iter(transcript_list))
-                        language_used = transcript.language_code
+                        language_used = getattr(transcript, 'language_code', 'unknown')
 
             raw_segments = transcript.fetch()
 
-        except NoTranscriptFound:
+        except (NoTranscriptFound, TranscriptsDisabled, VideoUnavailable) as e:
             raise TranscriptFetchError(
-                f"Video için hiçbir transkript bulunamadı: {video_id}"
+                f"Video için transkript bulunamadı ({video_id}): {e}"
             )
 
         # Transkript segmentlerini tek metne birleştir
-        # Her segmentin 'text' alanı var
         text_parts = []
         for seg in raw_segments:
-            # API'ye göre .text veya['text'] olabilir
+            # v1.x: FetchedTranscriptSnippet nesneleri .text attribute'u taşır
             text = seg.text if hasattr(seg, "text") else seg.get("text", "")
             text = text.strip().replace("\n", " ")
             if text:
@@ -172,8 +188,6 @@ def _fetch_transcript(video_id: str) -> tuple[str, str, str]:
             f"[YOUTUBE] Transkript alındı: video={video_id} "
             f"dil={language_used} uzunluk={len(full_text)} karakter"
         )
-        # Video başlığı ve kanal adı için ek API çağrısı yapmıyoruz
-        # (yt-dlp veya oEmbed ile Faz 5'te eklenebilir)
         return full_text, "", ""
 
     except TranscriptFetchError:
