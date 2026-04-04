@@ -111,7 +111,8 @@ async function createNewDraft() {
       tone: editTone.value,
     })
   } catch (e) {
-    publishStore.error = 'Taslak oluşturulamadı: ' + (e.response?.data?.error || e.message)
+    const msg = e.response?.data?.message || e.response?.data?.error || e.message || 'Bilinmeyen hata'
+    publishStore.error = 'Taslak oluşturulamadı: ' + msg
   }
 }
 

@@ -274,6 +274,13 @@ class TaskLog(db.Model):
             base["has_result"] = bool(self.result)
             base["has_error"]  = bool(self.error_msg)
 
+            # Görev başlığı/konusunu payload'dan çıkar
+            try:
+                _p = _json.loads(self.payload) if self.payload else {}
+                base["topic"] = _p.get("topic") or _p.get("url", "")
+            except (ValueError, TypeError):
+                base["topic"] = ""
+
         return base
 
     def __repr__(self) -> str:

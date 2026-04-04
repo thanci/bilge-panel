@@ -68,6 +68,8 @@ function shortId(id) {
 }
 
 function parsePayload(task) {
+  // Backend artık list view'da topic alanını gönderiyor
+  if (task.topic) return task.topic
   try {
     const p = typeof task.payload === 'string' ? JSON.parse(task.payload) : (task.payload || {})
     return p.topic || p.url || ''
