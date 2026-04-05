@@ -68,11 +68,17 @@ def queue_youtube_task():
 
         # Görevi kuyruğa al
         from app.tasks.youtube import youtube_to_article_task
-        async_result = youtube_to_article_task.delay({
+        payload = {
             "url":         url,
             "extra_notes": body.get("extra_notes", ""),
             "max_tokens":  body.get("max_tokens", 2500),
-        })
+        }
+        # Manuel transkript varsa ekle (YouTube API bypass)
+        manual_transcript = body.get("manual_transcript", "").strip()
+        if manual_transcript:
+            payload["manual_transcript"] = manual_transcript
+
+        async_result = youtube_to_article_task.delay(payload)
         task_id = async_result.id
 
         # TaskLog kaydı oluştur

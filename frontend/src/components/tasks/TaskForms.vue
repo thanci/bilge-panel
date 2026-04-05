@@ -43,14 +43,17 @@ const ytForm = reactive({
   extra_notes: '',
   max_tokens:  2500,
   xf_node_id:  '',
+  manual_transcript: '',   // Elle yapıştırılan transkript
 })
+const showManualTranscript = ref(false)
 
 async function submitYoutube() {
   if (!ytForm.url) return
   const payload = { ...ytForm }
   if (!payload.xf_node_id) delete payload.xf_node_id
+  if (!payload.manual_transcript) delete payload.manual_transcript
   const result = await taskStore.queueYoutube(payload)
-  if (result) { ytForm.url = ''; ytForm.extra_notes = ''; ytForm.xf_node_id = '' }
+  if (result) { ytForm.url = ''; ytForm.extra_notes = ''; ytForm.xf_node_id = ''; ytForm.manual_transcript = ''; showManualTranscript.value = false }
 }
 
 // ── Makale formu ─────────────────────────────────────────
@@ -198,10 +201,43 @@ async function submitArticle() {
         <input v-model="ytForm.url" type="url" class="input-field"
                placeholder="https://youtube.com/watch?v=..."
                :disabled="budgetStore.isBlocked" />
-        <p class="mt-1.5 text-xs text-gray-500">
-          TR → EN → oto dil sırası. 7 gün Redis önbellek.
-        </p>
+        <div class="mt-1.5 flex items-center justify-between">
+          <p class="text-xs text-gray-500">
+            TR → EN → oto dil sırası. 7 gün Redis önbellek.
+          </p>
+          <button @click="showManualTranscript = !showManualTranscript"
+                  :class="['text-xs px-2 py-0.5 rounded transition-colors',
+                           showManualTranscript
+                             ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                             : 'text-gray-500 hover:text-gray-300 border border-gray-700']"
+                  type="button">
+            {{ showManualTranscript ? '✕ Kapat' : '📋 Transkripti Elle Yapıştır' }}
+          </button>
+        </div>
       </div>
+
+      <!-- Manuel Transkript Alanı -->
+      <Transition name="slide-fade">
+        <div v-if="showManualTranscript" class="space-y-2">
+          <div class="bg-amber-500/5 border border-amber-500/20 rounded-lg p-3">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-amber-400 text-sm">⚠️</span>
+              <span class="text-xs text-amber-300 font-medium">Manuel Transkript Modu</span>
+            </div>
+            <p class="text-xs text-gray-400">
+              YouTube API erişimi engelleniyorsa, transkripti
+              <a href="https://youtubetotranscript.com/" target="_blank" class="text-indigo-400 hover:underline">youtubetotranscript.com</a>
+              gibi bir siteden kopyalayıp aşağıya yapıştırabilirsiniz.
+            </p>
+          </div>
+          <textarea v-model="ytForm.manual_transcript" class="textarea-field" rows="6"
+                    placeholder="Transkript metnini buraya yapıştırın..."
+                    :disabled="budgetStore.isBlocked" />
+          <div class="text-xs text-gray-600">
+            {{ ytForm.manual_transcript ? `~${ytForm.manual_transcript.split(/\s+/).length} kelime` : '' }}
+          </div>
+        </div>
+      </Transition>
 
       <div>
         <label class="field-label">Yönlendirme Notu</label>

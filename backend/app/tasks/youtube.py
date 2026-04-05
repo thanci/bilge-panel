@@ -301,28 +301,41 @@ def youtube_to_article_task(self, payload: dict) -> dict:
         except ValueError as e:
             raise TranscriptFetchError(str(e))
 
-        # ── ADIM 3: Duplicate task kilidi ──────────────────────────────
-        lock_key = f"lock:youtube:{video_id}"
-        if not acquire_task_lock(lock_key, ttl=600):
-            # Başka bir worker bu videoyu işliyors
-            logger.warning(f"[YOUTUBE] Video zaten işleniyor, kilit var: {video_id}")
-            update_task_status(
-                task_id, "FAILED",
-                error_msg="Bu video başka bir görevde zaten işleniyor."
+        # ── ADIM 2.5: Manuel transkript kontrolü ────────────────────
+        manual_transcript = payload.get("manual_transcript", "").strip()
+        if manual_transcript:
+            logger.info(
+                f"[YOUTUBE] Manuel transkript kullanılıyor: video={video_id} "
+                f"uzunluk={len(manual_transcript)} karakter"
             )
-            return {"status": "duplicate", "video_id": video_id}
-
-        # ── ADIM 4: Redis önbellek kontrolü ────────────────────────────
-        transcript_text = get_transcript_cache(video_id)
-        if transcript_text:
-            logger.info(f"[YOUTUBE] Transkript Redis önbellekten alındı: {video_id}")
+            transcript_text = manual_transcript
             video_title = ""
             channel_name = ""
-        else:
-            # ── ADIM 5: Transkript fetch ────────────────────────────────
-            transcript_text, video_title, channel_name = _fetch_transcript(video_id)
-            # Önbelleğe al (7 gün)
+            # Manuel transkripti de önbelleğe al
             set_transcript_cache(video_id, transcript_text)
+        else:
+            # ── ADIM 3: Duplicate task kilidi ──────────────────────────────
+            lock_key = f"lock:youtube:{video_id}"
+            if not acquire_task_lock(lock_key, ttl=600):
+                # Başka bir worker bu videoyu işliyors
+                logger.warning(f"[YOUTUBE] Video zaten işleniyor, kilit var: {video_id}")
+                update_task_status(
+                    task_id, "FAILED",
+                    error_msg="Bu video başka bir görevde zaten işleniyor."
+                )
+                return {"status": "duplicate", "video_id": video_id}
+
+            # ── ADIM 4: Redis önbellek kontrolü ────────────────────────────
+            transcript_text = get_transcript_cache(video_id)
+            if transcript_text:
+                logger.info(f"[YOUTUBE] Transkript Redis önbellekten alındı: {video_id}")
+                video_title = ""
+                channel_name = ""
+            else:
+                # ── ADIM 5: Transkript fetch ────────────────────────────────
+                transcript_text, video_title, channel_name = _fetch_transcript(video_id)
+                # Önbelleğe al (7 gün)
+                set_transcript_cache(video_id, transcript_text)
 
         # ── ADIM 6: Transkript chunking (uzun video kontrolü) ──────────
         chunks = _chunk_transcript_if_needed(transcript_text)

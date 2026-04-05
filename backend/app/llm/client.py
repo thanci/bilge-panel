@@ -104,21 +104,35 @@ class _GeminiAdapter:
         from google.api_core import exceptions as gexc
 
         try:
-            # Thinking modunu devre dışı bırak — düşünme token'ları
-            # max_output_tokens'tan yenildiği için içerik çok kısa kalıyordu
-            gen_config_dict = {
-                "max_output_tokens": max_tokens,
-                "temperature": temperature,
-            }
+            # Gemini 2.5 thinking modelleri: düşünme token'ları max_output_tokens'tan
+            # tüketilir, bu yüzden max_tokens'ı artırıyoruz
+            effective_max_tokens = max_tokens
+            is_thinking_model = "2.5" in model
 
-            # Gemini 2.5 modellerinde thinking_config desteği
-            if "2.5" in model or "2.0" in model:
+            if is_thinking_model:
+                # Thinking overhead'i telafi etmek için 4x artır
+                effective_max_tokens = max_tokens * 4
+
+            # thinking_config'li GenerationConfig dene
+            generation_config = None
+            if is_thinking_model:
                 try:
-                    gen_config_dict["thinking_config"] = {"thinking_budget": 0}
-                except Exception:
-                    pass  # SDK desteklemiyorsa atla
+                    generation_config = self._genai.types.GenerationConfig(
+                        max_output_tokens=effective_max_tokens,
+                        temperature=temperature,
+                        thinking_config={"thinking_budget": 0},
+                    )
+                    logger.info("[LLM] Gemini thinking_config=0 başarıyla ayarlandı")
+                except (TypeError, ValueError) as te:
+                    logger.warning(f"[LLM] thinking_config desteklenmiyor ({te}), fallback")
+                    generation_config = None
 
-            generation_config = self._genai.types.GenerationConfig(**gen_config_dict)
+            # Fallback: thinking_config'siz GenerationConfig
+            if generation_config is None:
+                generation_config = self._genai.types.GenerationConfig(
+                    max_output_tokens=effective_max_tokens,
+                    temperature=temperature,
+                )
 
             gmodel = self._genai.GenerativeModel(
                 model_name         = model,
