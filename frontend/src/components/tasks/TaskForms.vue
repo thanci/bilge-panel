@@ -58,8 +58,9 @@ const articleForm = reactive({
   topic:       '',
   tones:       ['felsefi'],   // Çoklu seçim — array
   length:      'orta',
-  category:    '',
   temperature: 0.75,
+  top_p:       0.9,
+  freq_penalty: 0.3,
   xf_node_id:  '',
 })
 
@@ -134,8 +135,9 @@ async function submitArticle() {
     topic: articleForm.topic,
     tone: toneString.value,
     length: articleForm.length,
-    category: articleForm.category,
     temperature: articleForm.temperature,
+    top_p: articleForm.top_p,
+    frequency_penalty: articleForm.freq_penalty,
     xf_node_id: articleForm.xf_node_id || undefined,
   }
   if (!payload.xf_node_id) delete payload.xf_node_id
@@ -304,27 +306,36 @@ async function submitArticle() {
         </div>
       </div>
 
-      <!-- Kategori (Forum listesinden seçim) -->
-      <div>
-        <label class="field-label">Kategori</label>
-        <select v-model="articleForm.category" class="select-field"
-                :disabled="budgetStore.isBlocked">
-          <option value="">— Kategori seçin —</option>
-          <option v-for="n in xfNodes" :key="n.node_id" :value="n.title || n.node_name">
-            {{ nodeLabel(n) }}
-          </option>
-        </select>
-      </div>
+      <!-- AI Parametre Slider'ları -->
+      <div class="space-y-3 bg-gray-900/40 rounded-lg p-4 border border-gray-700/30">
+        <div class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Üretim Parametreleri</div>
 
-      <!-- Yaratıcılık slider -->
-      <div class="flex items-center gap-4">
-        <label class="field-label mb-0 whitespace-nowrap">Yaratıcılık</label>
-        <input v-model.number="articleForm.temperature"
-               type="range" min="0.3" max="1.0" step="0.05"
-               class="flex-1 accent-indigo-500" :disabled="budgetStore.isBlocked" />
-        <span class="text-sm text-indigo-400 tabular-nums w-8">
-          {{ articleForm.temperature.toFixed(2) }}
-        </span>
+        <!-- Yaratıcılık (temperature) -->
+        <div class="flex items-center gap-3">
+          <label class="field-label mb-0 whitespace-nowrap text-xs w-28" title="Daha yüksek değer = daha yaratıcı, daha düşük = daha tutarlı">🎨 Yaratıcılık</label>
+          <input v-model.number="articleForm.temperature"
+                 type="range" min="0.3" max="1.0" step="0.05"
+                 class="flex-1 accent-indigo-500" :disabled="budgetStore.isBlocked" />
+          <span class="text-xs text-indigo-400 tabular-nums w-8">{{ articleForm.temperature.toFixed(2) }}</span>
+        </div>
+
+        <!-- Odaklanma (top_p) -->
+        <div class="flex items-center gap-3">
+          <label class="field-label mb-0 whitespace-nowrap text-xs w-28" title="Düşük = odaklı, yüksek = çeşitli kelime seçimleri">🎯 Odaklanma</label>
+          <input v-model.number="articleForm.top_p"
+                 type="range" min="0.5" max="1.0" step="0.05"
+                 class="flex-1 accent-emerald-500" :disabled="budgetStore.isBlocked" />
+          <span class="text-xs text-emerald-400 tabular-nums w-8">{{ articleForm.top_p.toFixed(2) }}</span>
+        </div>
+
+        <!-- Tekrar Engelleme (frequency_penalty) -->
+        <div class="flex items-center gap-3">
+          <label class="field-label mb-0 whitespace-nowrap text-xs w-28" title="Yüksek değer tekrarlayan ifadeleri azaltır">🔄 Tekrar Engeli</label>
+          <input v-model.number="articleForm.freq_penalty"
+                 type="range" min="0.0" max="1.0" step="0.1"
+                 class="flex-1 accent-amber-500" :disabled="budgetStore.isBlocked" />
+          <span class="text-xs text-amber-400 tabular-nums w-8">{{ articleForm.freq_penalty.toFixed(1) }}</span>
+        </div>
       </div>
 
       <!-- XenForo yayın hedefi -->

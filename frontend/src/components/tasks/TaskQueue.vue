@@ -80,6 +80,11 @@ async function revoke(taskId) {
   if (!confirm('Bu görevi iptal etmek istediğinize emin misiniz?')) return
   await taskStore.revokeTask(taskId)
 }
+
+async function deleteRow(taskId) {
+  if (!confirm('Bu görevi kalıcı olarak silmek istediğinize emin misiniz?')) return
+  await taskStore.deleteTask(taskId)
+}
 </script>
 
 <template>
@@ -159,7 +164,7 @@ async function revoke(taskId) {
               <th class="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider hidden md:table-cell">
                 Tarih
               </th>
-              <th class="px-4 py-3 w-16" />
+              <th class="px-4 py-3 w-20" />
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-700/30">
@@ -243,14 +248,22 @@ async function revoke(taskId) {
               </td>
 
               <!-- Eylemler -->
-              <td class="px-4 py-3 text-right">
-                <button
-                  v-if="task.status === 'QUEUED' || task.status === 'RUNNING'"
-                  @click="revoke(task.task_id)"
-                  class="btn-danger text-xs"
-                  title="Görevi iptal et">
-                  ✕
-                </button>
+              <td class="px-4 py-3 text-right" @click.stop>
+                <div class="flex items-center justify-end gap-1">
+                  <button
+                    v-if="task.status === 'QUEUED' || task.status === 'RUNNING'"
+                    @click="revoke(task.task_id)"
+                    class="btn-danger text-xs"
+                    title="Görevi iptal et">
+                    ✕
+                  </button>
+                  <button
+                    @click="deleteRow(task.task_id)"
+                    class="text-gray-600 hover:text-red-400 transition-colors text-xs p-1 rounded hover:bg-red-500/10"
+                    title="Görevi sil">
+                    🗑
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>

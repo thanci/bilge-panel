@@ -244,98 +244,16 @@ async function handleAiAction({ action, selectedText, fullText }) {
       </div>
     </Transition>
 
-    <!-- Ana içerik: Sol + Sağ panel -->
+    <!-- Ana içerik: Sol (Editör) + Sağ (Taslak Listesi) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-4" style="min-height: 70vh;">
 
-      <!-- ═══ SOL PANEL: Taslak Listesi ═══ -->
-      <div class="lg:col-span-3 space-y-3">
-
-        <!-- Yeni Taslak butonu -->
-        <button @click="createNewDraft"
-                class="w-full py-2.5 rounded-lg text-sm font-medium
-                       bg-indigo-500/10 border border-indigo-500/20 text-indigo-400
-                       hover:bg-indigo-500/15 hover:border-indigo-500/30
-                       transition-all flex items-center justify-center gap-2">
-          ＋ Yeni Taslak Oluştur
-        </button>
-
-        <!-- Filtre -->
-        <div class="flex gap-1 bg-gray-900 rounded-lg p-1">
-          <button v-for="opt in [
-                    { value: 'all',       label: 'Tümü' },
-                    { value: 'DRAFT',     label: '📝 Taslak' },
-                    { value: 'PUBLISHED', label: '✅ Yayınlanan' },
-                  ]" :key="opt.value"
-                  @click="publishStore.setFilter(opt.value)"
-                  :class="['flex-1 py-1.5 rounded-md text-xs font-medium transition-all',
-                           publishStore.filter === opt.value
-                             ? 'bg-gray-800 text-gray-100 shadow'
-                             : 'text-gray-400 hover:text-gray-200']">
-            {{ opt.label }}
-          </button>
-        </div>
-
-        <!-- Yükleniyor -->
-        <div v-if="publishStore.isLoading && !publishStore.drafts.length" class="space-y-2">
-          <div v-for="i in 4" :key="i"
-               class="h-16 bg-gray-800/60 animate-pulse rounded-lg" />
-        </div>
-
-        <!-- Boş durum -->
-        <div v-else-if="!publishStore.filteredDrafts.length"
-             class="text-center py-12 text-gray-600">
-          <div class="text-3xl mb-3">📭</div>
-          <div class="text-sm">Henüz taslak yok</div>
-          <p class="text-xs text-gray-700 mt-2">
-            Yukarıdaki butona tıklayarak yeni taslak oluşturun veya
-            görev kuyruğundan "Yayına Gönder" ile taslak ekleyin.
-          </p>
-        </div>
-
-        <!-- Taslak listesi -->
-        <div v-else class="space-y-2 max-h-[65vh] overflow-y-auto pr-1">
-          <div v-for="draft in publishStore.filteredDrafts" :key="draft.id"
-               @click="publishStore.selectDraft(draft.id)"
-               :class="['draft-card group transition-all duration-150',
-                        publishStore.activeDraft?.id === draft.id
-                          ? 'border-indigo-500/60 bg-indigo-500/10 border-l-4 !border-l-indigo-400 shadow-lg shadow-indigo-500/10'
-                          : 'border-gray-700/30 hover:border-gray-600/50']">
-
-            <div class="flex items-start justify-between gap-2">
-              <div class="flex-1 min-w-0">
-                <div class="text-sm font-medium text-gray-200 truncate">
-                  {{ draft.title || 'Başlıksız' }}
-                </div>
-                <div class="flex items-center gap-2 mt-1">
-                  <span class="text-xs text-gray-500">
-                    {{ draft.source_type === 'youtube_summary' ? '📺' : '✍️' }}
-                  </span>
-                  <span class="text-xs text-gray-600">
-                    {{ formatDate(draft.updated_at) }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="flex items-center gap-1.5">
-                <StatusBadge :status="draft.status" size="xs" />
-                <button @click.stop="handleDelete(draft.id)"
-                        class="text-gray-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 text-xs"
-                        title="Taslağı sil">
-                  🗑
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══ SAĞ PANEL: Editör ═══ -->
-      <div class="lg:col-span-9">
+      <!-- ═══ SOL PANEL: Editör (9/12) ═══ -->
+      <div class="lg:col-span-9 order-2 lg:order-1">
         <div v-if="!publishStore.activeDraft" class="card p-12 text-center">
           <div class="text-4xl mb-4">📝</div>
           <h3 class="text-lg font-medium text-gray-300 mb-2">Düzenlemek için bir taslak seçin</h3>
           <p class="text-sm text-gray-500">
-            Soldaki listeden bir taslak seçin, yukarıdaki "Yeni Taslak Oluştur" butonunu kullanın
+            Sağdaki listeden bir taslak seçin, "Yeni Taslak Oluştur" butonunu kullanın
             veya görev kuyruğundan "Yayına Gönder" ile yeni taslak oluşturun.
           </p>
         </div>
@@ -455,6 +373,88 @@ async function handleAiAction({ action, selectedText, fullText }) {
           </div>
         </div>
       </div>
+
+      <!-- ═══ SAĞ PANEL: Taslak Listesi (3/12) ═══ -->
+      <div class="lg:col-span-3 order-1 lg:order-2 space-y-3">
+
+        <!-- Yeni Taslak butonu -->
+        <button @click="createNewDraft"
+                class="w-full py-2.5 rounded-lg text-sm font-medium
+                       bg-indigo-500/10 border border-indigo-500/20 text-indigo-400
+                       hover:bg-indigo-500/15 hover:border-indigo-500/30
+                       transition-all flex items-center justify-center gap-2">
+          ＋ Yeni Taslak Oluştur
+        </button>
+
+        <!-- Filtre -->
+        <div class="flex gap-1 bg-gray-900 rounded-lg p-1">
+          <button v-for="opt in [
+                    { value: 'all',       label: 'Tümü' },
+                    { value: 'DRAFT',     label: '📝 Taslak' },
+                    { value: 'PUBLISHED', label: '✅ Yayınlanan' },
+                  ]" :key="opt.value"
+                  @click="publishStore.setFilter(opt.value)"
+                  :class="['flex-1 py-1.5 rounded-md text-xs font-medium transition-all',
+                           publishStore.filter === opt.value
+                             ? 'bg-gray-800 text-gray-100 shadow'
+                             : 'text-gray-400 hover:text-gray-200']">
+            {{ opt.label }}
+          </button>
+        </div>
+
+        <!-- Yükleniyor -->
+        <div v-if="publishStore.isLoading && !publishStore.drafts.length" class="space-y-2">
+          <div v-for="i in 4" :key="i"
+               class="h-16 bg-gray-800/60 animate-pulse rounded-lg" />
+        </div>
+
+        <!-- Boş durum -->
+        <div v-else-if="!publishStore.filteredDrafts.length"
+             class="text-center py-12 text-gray-600">
+          <div class="text-3xl mb-3">📭</div>
+          <div class="text-sm">Henüz taslak yok</div>
+          <p class="text-xs text-gray-700 mt-2">
+            "Yeni Taslak Oluştur" butonunu kullanın veya
+            görev kuyruğundan "Yayına Gönder" ile taslak ekleyin.
+          </p>
+        </div>
+
+        <!-- Taslak listesi -->
+        <div v-else class="space-y-2 max-h-[65vh] overflow-y-auto pr-1">
+          <div v-for="draft in publishStore.filteredDrafts" :key="draft.id"
+               @click="publishStore.selectDraft(draft.id)"
+               :class="['draft-card group transition-all duration-150',
+                        publishStore.activeDraft?.id === draft.id
+                          ? 'active-draft'
+                          : 'border-gray-700/30 hover:border-gray-600/50']">
+
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium text-gray-200 truncate">
+                  {{ draft.title || 'Başlıksız' }}
+                </div>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-xs text-gray-500">
+                    {{ draft.source_type === 'youtube_summary' ? '📺' : '✍️' }}
+                  </span>
+                  <span class="text-xs text-gray-600">
+                    {{ formatDate(draft.updated_at) }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-1.5">
+                <StatusBadge :status="draft.status" size="xs" />
+                <button @click.stop="handleDelete(draft.id)"
+                        class="text-gray-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 text-xs"
+                        title="Taslağı sil">
+                  🗑
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -470,6 +470,16 @@ async function handleAiAction({ action, selectedText, fullText }) {
 }
 .draft-card:hover {
   background: rgba(99, 102, 241, 0.04);
+}
+
+/* ── Aktif Taslak (belirgin vurgu) ─────────────── */
+.active-draft {
+  border-color: rgba(99, 102, 241, 0.6) !important;
+  background: rgba(99, 102, 241, 0.15) !important;
+  border-left: 4px solid rgb(129, 140, 248) !important;
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.15),
+              0 4px 12px rgba(0, 0, 0, 0.2);
+  ring: 1px rgba(99, 102, 241, 0.3);
 }
 
 /* ── Butonlar ──────────────────────────────────── */

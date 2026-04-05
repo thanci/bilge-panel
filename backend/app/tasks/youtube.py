@@ -137,7 +137,29 @@ def _fetch_transcript(video_id: str) -> tuple[str, str, str]:
 
     try:
         # v1.x: Instance oluştur ve list() kullan
-        ytt_api = YouTubeTranscriptApi()
+        # Proxy desteği: YOUTUBE_PROXY_URL ayarı varsa kullan
+        proxy_url = current_app.config.get("YOUTUBE_PROXY_URL", "")
+        if not proxy_url:
+            import os
+            proxy_url = os.environ.get("YOUTUBE_PROXY_URL", "")
+
+        if proxy_url:
+            logger.info(f"[YOUTUBE] Proxy kullanılıyor: {proxy_url[:30]}...")
+            from requests import Session
+            session = Session()
+            session.proxies = {
+                "http": proxy_url,
+                "https": proxy_url,
+            }
+            # v1.x: YouTubeTranscriptApi(http_client=...) veya proxies parametresi
+            try:
+                ytt_api = YouTubeTranscriptApi(proxies=proxy_url)
+            except TypeError:
+                # Bazı v1.x sürümleri farklı parametre alabilir
+                ytt_api = YouTubeTranscriptApi()
+                logger.warning("[YOUTUBE] Proxy parametresi desteklenmiyor, proxy'siz devam ediliyor.")
+        else:
+            ytt_api = YouTubeTranscriptApi()
 
         try:
             transcript_list = ytt_api.list(video_id)
