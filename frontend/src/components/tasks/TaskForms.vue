@@ -14,9 +14,13 @@ const budgetStore = useBudgetStore()
 const activeTab   = ref('youtube')
 
 // ── Node ağaç yardımcısı (parent category name lookup) ────
+const allNodes = ref([])    // Tüm node'lar (Category + Forum)
+const xfNodes  = computed(() =>
+  allNodes.value.filter(n => n.node_type_id === 'Forum' || !n.node_type_id)
+)
 const nodeMap = computed(() => {
   const map = {}
-  for (const n of xfNodes.value) map[n.node_id] = n
+  for (const n of allNodes.value) map[n.node_id] = n
   return map
 })
 function nodeLabel(n) {
@@ -26,13 +30,10 @@ function nodeLabel(n) {
 }
 
 // ── XenForo forum listesi ────────────────────────────────
-const xfNodes = ref([])
 onMounted(async () => {
   try {
     const { data } = await api.get('/xenforo/nodes?flat=1')
-    xfNodes.value = (data.data || []).filter(
-      n => n.node_type_id === 'Forum' || !n.node_type_id,
-    )
+    allNodes.value = data.data || []
   } catch { /* XenForo bağlı değilse sessizce atla */ }
 })
 
