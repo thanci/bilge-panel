@@ -13,6 +13,18 @@ const taskStore   = useTaskStore()
 const budgetStore = useBudgetStore()
 const activeTab   = ref('youtube')
 
+// ── Node ağaç yardımcısı (parent category name lookup) ────
+const nodeMap = computed(() => {
+  const map = {}
+  for (const n of xfNodes.value) map[n.node_id] = n
+  return map
+})
+function nodeLabel(n) {
+  const parent = nodeMap.value[n.parent_node_id]
+  if (parent) return `${parent.title || parent.node_name} › ${n.title || n.node_name}`
+  return n.title || n.node_name
+}
+
 // ── XenForo forum listesi ────────────────────────────────
 const xfNodes = ref([])
 onMounted(async () => {
@@ -46,7 +58,6 @@ const articleForm = reactive({
   tones:       ['felsefi'],   // Çoklu seçim — array
   length:      'orta',
   category:    '',
-  keywords:    '',
   temperature: 0.75,
   xf_node_id:  '',
 })
@@ -123,7 +134,6 @@ async function submitArticle() {
     tone: toneString.value,
     length: articleForm.length,
     category: articleForm.category,
-    keywords: articleForm.keywords,
     temperature: articleForm.temperature,
     xf_node_id: articleForm.xf_node_id || undefined,
   }
@@ -215,7 +225,7 @@ async function submitArticle() {
                 :disabled="budgetStore.isBlocked">
           <option value="">— Sadece üret, yayınlama —</option>
           <option v-for="n in xfNodes" :key="n.node_id" :value="n.node_id">
-            [{{ n.node_id }}] {{ n.title || n.node_name }}
+            {{ nodeLabel(n) }}
           </option>
         </select>
       </div>
@@ -233,12 +243,13 @@ async function submitArticle() {
     <!-- ══ MAKALE FORMU ═══════════════════════════════════ -->
     <div v-if="activeTab === 'article'" class="card p-6 space-y-5 animate-fade-in">
 
-      <!-- Konu -->
+      <!-- Yazı Hakkında -->
       <div>
-        <label class="field-label">Konu <span class="text-red-500">*</span></label>
-        <input v-model="articleForm.topic" type="text" class="input-field"
-               placeholder="Stoicism ve modern kaygı yönetimi..."
+        <label class="field-label">Yazı Hakkında <span class="text-red-500">*</span></label>
+        <textarea v-model="articleForm.topic" class="textarea-field" rows="3"
+               placeholder="Yazının konusu, odak noktaları ve dahil edilmesini istediğiniz detayları buraya yazın. Örn: Stoacı felsefenin modern kaygı yönetimine etkisini, Marcus Aurelius ve Epiktetos örnekleriyle açıkla..."
                :disabled="budgetStore.isBlocked" />
+        <p class="mt-1 text-xs text-gray-600">Konu, odak ve talimatlarınızı detaylı yazın — AI tüm açıklamayı dikkate alır.</p>
       </div>
 
       <!-- Yazım Stili — Çoklu Seçim Dropdown -->
@@ -292,23 +303,16 @@ async function submitArticle() {
         </div>
       </div>
 
-      <!-- Kategori (Forum listesinden seçim) + Anahtar Kelimeler -->
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="field-label">Kategori</label>
-          <select v-model="articleForm.category" class="select-field"
-                  :disabled="budgetStore.isBlocked">
-            <option value="">— Kategori seçin —</option>
-            <option v-for="n in xfNodes" :key="n.node_id" :value="n.title || n.node_name">
-              {{ n.title || n.node_name }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="field-label">Anahtar Kelimeler</label>
-          <input v-model="articleForm.keywords" type="text" class="input-field"
-                 placeholder="stoicism, kaygı" :disabled="budgetStore.isBlocked" />
-        </div>
+      <!-- Kategori (Forum listesinden seçim) -->
+      <div>
+        <label class="field-label">Kategori</label>
+        <select v-model="articleForm.category" class="select-field"
+                :disabled="budgetStore.isBlocked">
+          <option value="">— Kategori seçin —</option>
+          <option v-for="n in xfNodes" :key="n.node_id" :value="n.title || n.node_name">
+            {{ nodeLabel(n) }}
+          </option>
+        </select>
       </div>
 
       <!-- Yaratıcılık slider -->
@@ -329,7 +333,7 @@ async function submitArticle() {
                 :disabled="budgetStore.isBlocked">
           <option value="">— Sadece üret, yayınlama —</option>
           <option v-for="n in xfNodes" :key="n.node_id" :value="n.node_id">
-            [{{ n.node_id }}] {{ n.title || n.node_name }}
+            {{ nodeLabel(n) }}
           </option>
         </select>
         <p v-if="articleForm.xf_node_id"

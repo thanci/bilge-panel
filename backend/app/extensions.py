@@ -28,5 +28,5 @@ cors = CORS()
 # Storage URI uygulama başlatılırken config'den inject edilir
 limiter = Limiter(
     key_func=get_remote_address,   # İstemci IP'si üzerinden sınırla
-    default_limits=["2000 per day", "500 per hour"],
+    default_limits=["20000 per day", "5000 per hour"],
 )

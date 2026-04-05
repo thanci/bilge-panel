@@ -296,9 +296,9 @@ async function handleAiAction({ action, selectedText, fullText }) {
         <div v-else class="space-y-2 max-h-[65vh] overflow-y-auto pr-1">
           <div v-for="draft in publishStore.filteredDrafts" :key="draft.id"
                @click="publishStore.selectDraft(draft.id)"
-               :class="['draft-card group',
+               :class="['draft-card group transition-all duration-150',
                         publishStore.activeDraft?.id === draft.id
-                          ? 'border-indigo-500/40 bg-indigo-500/5'
+                          ? 'border-indigo-500/60 bg-indigo-500/10 border-l-4 !border-l-indigo-400 shadow-lg shadow-indigo-500/10'
                           : 'border-gray-700/30 hover:border-gray-600/50']">
 
             <div class="flex items-start justify-between gap-2">
