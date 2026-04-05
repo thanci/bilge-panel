@@ -76,6 +76,11 @@ class _GeminiAdapter:
     """
     google-generativeai 0.8.x adaptörü.
     Gemini 2.5 Flash için API çağrısı yapar.
+
+    NOT: Gemini 2.5 Flash varsayılan olarak "thinking" moduyla gelir.
+    Thinking modu açıkken, düşünme token'ları max_output_tokens bütçesinden
+    yenir — bu da kısa çıktılara neden olur. İçerik üretimi görevlerinde
+    thinking'i kapatıyoruz.
     """
 
     def __init__(self, api_key: str):
@@ -99,10 +104,22 @@ class _GeminiAdapter:
         from google.api_core import exceptions as gexc
 
         try:
-            generation_config = self._genai.types.GenerationConfig(
-                max_output_tokens = max_tokens,
-                temperature       = temperature,
-            )
+            # Thinking modunu devre dışı bırak — düşünme token'ları
+            # max_output_tokens'tan yenildiği için içerik çok kısa kalıyordu
+            gen_config_dict = {
+                "max_output_tokens": max_tokens,
+                "temperature": temperature,
+            }
+
+            # Gemini 2.5 modellerinde thinking_config desteği
+            if "2.5" in model or "2.0" in model:
+                try:
+                    gen_config_dict["thinking_config"] = {"thinking_budget": 0}
+                except Exception:
+                    pass  # SDK desteklemiyorsa atla
+
+            generation_config = self._genai.types.GenerationConfig(**gen_config_dict)
+
             gmodel = self._genai.GenerativeModel(
                 model_name         = model,
                 system_instruction = system,
@@ -118,6 +135,16 @@ class _GeminiAdapter:
 
             text = response.text
             usage = response.usage_metadata
+
+            # Debug: yanıt uzunluğunu logla
+            logger.info(
+                f"[LLM] Gemini yanıt detayı: "
+                f"text_len={len(text)} chars, "
+                f"prompt_tokens={usage.prompt_token_count}, "
+                f"output_tokens={usage.candidates_token_count}, "
+                f"total_tokens={getattr(usage, 'total_token_count', 'N/A')}"
+            )
+
             return LLMResponse(
                 text          = text,
                 model         = model,

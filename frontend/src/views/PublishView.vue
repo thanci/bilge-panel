@@ -20,7 +20,6 @@ const xfNodes = ref([])
 // Editör state
 const editTitle     = ref('')
 const editContent   = ref('')
-const editCategory  = ref('')
 const editTags      = ref('')
 const editNodeId    = ref('')
 const editTone      = ref('felsefi')
@@ -80,7 +79,6 @@ watch(() => publishStore.activeDraft, (draft) => {
   if (draft) {
     editTitle.value    = draft.title || ''
     editContent.value  = draft.content || ''
-    editCategory.value = draft.category || ''
     editNodeId.value   = draft.xf_node_id || ''
     editTone.value     = draft.tone || 'felsefi'
     editTags.value     = Array.isArray(draft.tags)
@@ -107,7 +105,6 @@ async function createNewDraft() {
     await publishStore.createDraft({
       title: 'Başlıksız Taslak',
       content: '',
-      category: '',
       tone: editTone.value,
     })
   } catch (e) {
@@ -133,7 +130,6 @@ async function handleSave() {
   await publishStore.saveDraft(publishStore.activeDraft.id, {
     title:      editTitle.value,
     content:    editContent.value,
-    category:   editCategory.value,
     tags:       tags,
     xf_node_id: editNodeId.value || null,
     tone:       editTone.value,
@@ -297,15 +293,8 @@ async function handleAiAction({ action, selectedText, fullText }) {
                      :disabled="publishStore.activeDraft.status === 'PUBLISHED'" />
             </div>
 
-            <!-- Kategori + Forum + Etiketler + Yazım Stili -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <div>
-                <label class="field-label">Kategori</label>
-                <input v-model="editCategory" @input="markChanged"
-                       type="text" class="input-field text-sm"
-                       placeholder="Felsefe"
-                       :disabled="publishStore.activeDraft.status === 'PUBLISHED'" />
-              </div>
+            <!-- Forum + Etiketler + Yazım Stili -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label class="field-label">Hedef Forum</label>
                 <select v-model="editNodeId" @change="markChanged"
